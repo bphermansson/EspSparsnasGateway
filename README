@@ -1,0 +1,5 @@
+This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor 
+sends encoded data by radio to a control panel. This device collects the data 
+and sends it to Mqtt-enabled receivers in Json-format.
+
+Todo: How to create a sensor in Home Assistant for this device.  
