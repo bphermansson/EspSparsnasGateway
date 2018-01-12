@@ -4,10 +4,30 @@
  * 
  * 
  */
-
-#include "RFM69registers.h"
+//#include <RFM69.h>
+#include <RFM69registers.h>
 #include <Arduino.h>
 #include <SPI.h>
+
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+#include <ArduinoJson.h>
+
+#define appname "EspSparsnasGateway"
+
+// Wifi settings
+const char* ssid = "NETGEAR83";
+const char* password = "..........";
+
+// Mqtt
+#include <PubSubClient.h>
+WiFiClient espClient;
+PubSubClient client(espClient);
+const char* mqtt_server = "192.168.1.79";
+char* mqtt_status_topic = "EspSparsnasGateway/values";
+
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -45,7 +65,56 @@ unsigned long lastRecievedData = millis();
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("Setup.");
 
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
+  }
+  WiFi.hostname(appname);
+
+  
+ ArduinoOTA.onStart([]() {
+    Serial.println("Start");
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+
+
+  client.setServer(mqtt_server, 1883);
+  //client.setCallback(callback); // What to do when a Mqtt message arrives
+  if (!client.connected()) {
+      reconnect();
+  }
+
+  // Publish some info
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  //sprintf(mqtt_status_topic,"%s/status",appname);
+  
+  IPAddress ip = WiFi.localIP();
+  char buf[60];
+  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
+  client.publish(mqtt_status_topic, buf);
+  
   // Calc encryption key, used for bytes 5-17
   const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
   enc_key[0] = (uint8_t)(sensor_id_sub >> 24);
@@ -61,7 +130,6 @@ void setup() {
     }
   }
   Serial.println("Listening on " + String(getFrequency()) + "hz.");
-
   Serial.println("Done in setup.");
 }
 
@@ -133,7 +201,12 @@ bool initialize(uint32_t frequency) {
     return false;
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
+    
+  Serial.println("RFM69 init done");
 
+     // int rssi = radio.RSSI;
+
+  
   return true;
 }
 
@@ -289,6 +362,17 @@ void interruptHandler() {
 
       output += (crc == packet_crc ? "" : "CRC ERR");
       Serial.println(output);
+
+
+    //For Json output
+    StaticJsonBuffer<150> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    char msg[50];
+    root["seq"] = seq;
+    root["effect"] = effect;
+    root["battery"] = battery;
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_status_topic, msg);  // Wants a char
     }
 
     unselect();
@@ -358,6 +442,8 @@ uint16_t crc16(volatile uint8_t *data, size_t n) {
 }
 
 void loop() {
+  ArduinoOTA.handle();
+
   if (receiveDone()) {
     lastRecievedData = millis();
     // Send data to Mqtt server
@@ -366,5 +452,26 @@ void loop() {
     //codeLibrary.wait(500);
     delay(500);
   }
+  // Mqtt
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+}
 
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    //Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect(appname, "emonpi", "emonpimqtt2016")) {
+      //Serial.println("connected");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
 }
