@@ -2,32 +2,31 @@
  * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
  * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
  * 
- * 
  */
-//#include <RFM69.h>
+#define MQTT_USERNAME "emonpi"     
+#define MQTT_PASSWORD "emonpimqtt2016"  
+#define appname "EspSparsnasGateway"
+const char* mqtt_server = "192.168.1.79";
+char* mqtt_status_topic = "EspSparsnasGateway/values";
+
+// Wifi settings
+const char* ssid = "NETGEAR83";
+const char* password = "..........";
+
+
 #include <RFM69registers.h>
 #include <Arduino.h>
 #include <SPI.h>
-
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 
-#define appname "EspSparsnasGateway"
-
-// Wifi settings
-const char* ssid = "NETGEAR83";
-const char* password = "..........";
-
 // Mqtt
 #include <PubSubClient.h>
 WiFiClient espClient;
 PubSubClient client(espClient);
-const char* mqtt_server = "192.168.1.79";
-char* mqtt_status_topic = "EspSparsnasGateway/values";
-
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -65,7 +64,7 @@ unsigned long lastRecievedData = millis();
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Setup.");
+  Serial.println("Setup");
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -76,7 +75,6 @@ void setup() {
   }
   WiFi.hostname(appname);
 
-  
  ArduinoOTA.onStart([]() {
     Serial.println("Start");
   });
@@ -96,20 +94,17 @@ void setup() {
   });
   ArduinoOTA.begin();
 
-
   client.setServer(mqtt_server, 1883);
   //client.setCallback(callback); // What to do when a Mqtt message arrives
   if (!client.connected()) {
       reconnect();
   }
 
-  // Publish some info
+  // Publish some info, first via serial, then Mqtt
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  //sprintf(mqtt_status_topic,"%s/status",appname);
-  
   IPAddress ip = WiFi.localIP();
   char buf[60];
   sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
@@ -124,13 +119,19 @@ void setup() {
   enc_key[4] = (uint8_t)(sensor_id_sub >> 16);
 
   if (!initialize(FREQUENCY)) {
-    Serial.println("Unable to initialize the radio. Exiting.");
+    char mess[ ] = "Unable to initialize the radio. Exiting.";
+    Serial.println(mess);
+    client.publish(mqtt_status_topic, mess);
+
     while (1) {
       yield();
     }
   }
-  Serial.println("Listening on " + String(getFrequency()) + "hz.");
-  Serial.println("Done in setup.");
+  String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
+  char mess[100];
+  temp.toCharArray(mess,100);
+  Serial.println(temp);
+  client.publish(mqtt_status_topic, mess);
 }
 
 bool initialize(uint32_t frequency) {
@@ -197,16 +198,16 @@ bool initialize(uint32_t frequency) {
     delay(1);
   }
   if (millis() - start >= timeout) {
-    Serial.println("Failed on waiting for ModeReady()");
+    char mess[ ] = "Failed on waiting for ModeReady()";
+    Serial.println(mess);
+    client.publish(mqtt_status_topic, mess);
     return false;
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
-    
-  Serial.println("RFM69 init done");
 
-     // int rssi = radio.RSSI;
-
-  
+  char mess[ ] = "RFM69 init done";
+  Serial.println(mess);
+  client.publish(mqtt_status_topic, mess);
   return true;
 }
 
@@ -361,18 +362,24 @@ void interruptHandler() {
       output += String(battery) + "% ";
 
       output += (crc == packet_crc ? "" : "CRC ERR");
+      String err = (crc == packet_crc ? "" : "CRC ERR");
       Serial.println(output);
 
-
-    //For Json output
-    StaticJsonBuffer<150> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    char msg[50];
-    root["seq"] = seq;
-    root["effect"] = effect;
-    root["battery"] = battery;
-    root.printTo((char*)msg, root.measureLength() + 1);
-    client.publish(mqtt_status_topic, msg);  // Wants a char
+    if (err=="CRC ERR") {
+      Serial.println(err);
+    }
+    else {
+      //For Json output
+      StaticJsonBuffer<150> jsonBuffer;
+      JsonObject& root = jsonBuffer.createObject();
+      char msg[150];
+      root["seq"] = seq;
+      root["effect"] = effect;
+      root["total"] = watt;
+      root["battery"] = battery;
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_status_topic, msg);  // Wants a char
+    }
     }
 
     unselect();
@@ -464,8 +471,8 @@ void reconnect() {
   while (!client.connected()) {
     //Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(appname, "emonpi", "emonpimqtt2016")) {
-      //Serial.println("connected");
+    if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
+      Serial.println("Connected to Mqtt broker");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
