@@ -15,4 +15,23 @@ The data sent via Mqtt is in Json format and looks like this:
 
 {"seq":13688,"effect":2024,"total":1821.344,"battery":100}
 
-Todo: How to create a sensor in Home Assistant for this device.  
+In Home Assistant the sensors can look like this:
+
+# Sparnas energy monitor
+  - platform: mqtt
+    state_topic: "EspSparsnasGateway/values"
+    name: "House energy usage"
+    unit_of_measurement: "W"
+    value_template: '{{ float(value_json.effect) }}'
+    
+  - platform: mqtt
+    state_topic: "EspSparsnasGateway/values"
+    name: "House energy meter batt"
+    unit_of_measurement: "%"
+    value_template: '{{ float(value_json.battery) }}'
+
+We then get these sensors: 
+
+-sensor.house_energy_meter_batt
+-sensor.house_energy_usage
+
