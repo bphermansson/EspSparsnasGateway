@@ -3,16 +3,20 @@
  * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
  * 
  */
+
+ // Settings for the Mqtt broker:
 #define MQTT_USERNAME "emonpi"     
 #define MQTT_PASSWORD "emonpimqtt2016"  
-#define appname "EspSparsnasGateway"
 const char* mqtt_server = "192.168.1.79";
+
+// You dont have to change anything below
+
 char* mqtt_status_topic = "EspSparsnasGateway/values";
+#define appname "EspSparsnasGateway"
 
 // Wifi settings
 const char* ssid = "NETGEAR83";
 const char* password = "..........";
-
 
 #include <RFM69registers.h>
 #include <Arduino.h>
@@ -374,8 +378,8 @@ void interruptHandler() {
       JsonObject& root = jsonBuffer.createObject();
       char msg[150];
       root["seq"] = seq;
-      root["effect"] = effect;
-      root["total"] = watt;
+      root["effect"] = String(watt);
+      root["total"] = String(pulse / 1000);
       root["battery"] = battery;
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg);  // Wants a char
@@ -451,6 +455,12 @@ uint16_t crc16(volatile uint8_t *data, size_t n) {
 void loop() {
   ArduinoOTA.handle();
 
+  // Mqtt
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
+  
   if (receiveDone()) {
     lastRecievedData = millis();
     // Send data to Mqtt server
@@ -459,17 +469,12 @@ void loop() {
     //codeLibrary.wait(500);
     delay(500);
   }
-  // Mqtt
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
 }
 
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
-    //Serial.print("Attempting MQTT connection...");
+    Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
       Serial.println("Connected to Mqtt broker");

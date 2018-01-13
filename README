@@ -1,5 +1,18 @@
 This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor 
 sends encoded data by radio to a control panel. This device collects the data 
-and sends it to Mqtt-enabled receivers in Json-format.
+and sends it to Mqtt-enabled receivers in Json-format. Thus you need a Mqtt broker 
+in your network and adjust the settings  in the ino-file:
+
+// Settings for the Mqtt broker:
+#define MQTT_USERNAME "<username>"    // If used by the broker     
+#define MQTT_PASSWORD "<password>"     //    -   *   -
+const char* mqtt_server = "192.168.1.79";  // Mqtt brokers IP
+
+The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad. 
+This gives a CRC-error, the data is in this case not sent via Mqtt but printed via the serial port. 
+
+The data sent via Mqtt is in Json format and looks like this:
+
+{"seq":13688,"effect":2024,"total":1821.344,"battery":100}
 
 Todo: How to create a sensor in Home Assistant for this device.  
