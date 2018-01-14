@@ -13,7 +13,7 @@ This gives a CRC-error, the data is in this case not sent via Mqtt but printed v
 
 The data sent via Mqtt is in Json format and looks like this:
 
-{"seq":13688,"effect":2024,"total":1821.344,"battery":100}
+{"seq":13688,"power":2024,"total":1821.344,"battery":100}
 
 In Home Assistant the sensors can look like this:
 
@@ -22,7 +22,7 @@ In Home Assistant the sensors can look like this:
     state_topic: "EspSparsnasGateway/values"
     name: "House energy usage"
     unit_of_measurement: "W"
-    value_template: '{{ float(value_json.effect) | round(0)  }}'
+    value_template: '{{ float(value_json.power) | round(0)  }}'
     
   - platform: mqtt
     state_topic: "EspSparsnasGateway/values"
