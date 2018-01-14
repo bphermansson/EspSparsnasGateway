@@ -1,4 +1,4 @@
-/*
+ /*
  * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
  * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
  * 
@@ -8,6 +8,12 @@
 #define MQTT_USERNAME "emonpi"     
 #define MQTT_PASSWORD "emonpimqtt2016"  
 const char* mqtt_server = "192.168.1.79";
+
+// Set this to the value of your energy meter
+#define PULSES_PER_KWH 1000 // <- samma här, står på elmätaren
+// The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
+// Set SENSOR_ID to the last six digits, ie '643654'.
+#define SENSOR_ID 643654 
 
 // You dont have to change anything below
 
@@ -37,9 +43,6 @@ PubSubClient client(espClient);
 #define RF69_MODE_SYNTH 2      // PLL ON
 #define RF69_MODE_RX 3    // RX MODE
 #define RF69_MODE_TX 4    // TX MODE
-
-#define SENSOR_ID 643654 //<- ange din 6 siffriga kod här, ta sista 6 siffrorna av 400 666 111. Koden finns i sändaren under batteriet
-#define PULSES_PER_KWH 1000 // <- samma här, står på elmätaren
 
 uint32_t FXOSC = 32000000;
 uint32_t TwoPowerToNinteen = 524288; // 2^19
@@ -325,7 +328,11 @@ void interruptHandler() {
 
     String output;
 
-    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
+    // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
+    // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) { 
+    // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
+    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+
       /*
       output = "Bad package: ";
       for (int i = 0; i < 18; i++) {
@@ -359,10 +366,21 @@ void interruptHandler() {
       int power = (TEMPDATA[11] << 8 | TEMPDATA[12]);
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]);
       int battery = TEMPDATA[17];
-      float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+      
+      // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
+      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+      float watt = power * 24;
+      int data4 = TEMPDATA[4]^0x0f;
+      //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
+      if(data4 == 1){
+           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+      }
+      /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+      'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
+      */
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
-      output += String(pulse / 1000) + " kWh, battery ";
+      output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
       output += String(battery) + "% ";
 
       output += (crc == packet_crc ? "" : "CRC ERR");
@@ -379,7 +397,7 @@ void interruptHandler() {
       char msg[150];
       root["seq"] = seq;
       root["power"] = String(watt);
-      root["total"] = String(pulse / 1000);
+      root["total"] = String(pulse / PULSES_PER_KWH);
       root["battery"] = battery;
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg);  // Wants a char
