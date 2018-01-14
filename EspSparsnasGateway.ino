@@ -356,10 +356,10 @@ void interruptHandler() {
       Serial.println(output);
       */
       int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);
-      int effect = (TEMPDATA[11] << 8 | TEMPDATA[12]);
+      int power = (TEMPDATA[11] << 8 | TEMPDATA[12]);
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]);
       int battery = TEMPDATA[17];
-      float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);
+      float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
       output += String(pulse / 1000) + " kWh, battery ";
@@ -378,7 +378,7 @@ void interruptHandler() {
       JsonObject& root = jsonBuffer.createObject();
       char msg[150];
       root["seq"] = seq;
-      root["effect"] = String(watt);
+      root["power"] = String(watt);
       root["total"] = String(pulse / 1000);
       root["battery"] = battery;
       root.printTo((char*)msg, root.measureLength() + 1);
