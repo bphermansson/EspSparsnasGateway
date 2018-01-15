@@ -15,10 +15,14 @@ const char* mqtt_server = "192.168.1.79";
 // Set SENSOR_ID to the last six digits, ie '643654'.
 #define SENSOR_ID 643654 
 
+#define DEBUG 1
+
 // You dont have to change anything below
 
 char* mqtt_status_topic = "EspSparsnasGateway/values";
 #define appname "EspSparsnasGateway"
+
+const char compile_date[] = __DATE__ " " __TIME__;
 
 // Wifi settings
 const char* ssid = "NETGEAR83";
@@ -71,7 +75,12 @@ unsigned long lastRecievedData = millis();
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Setup");
+  Serial.println("Welcome to EspSparsnasGateway");
+  Serial.print ("Compiled at:");
+  Serial.println(compile_date);
+  #ifdef DEBUG
+     Serial.println("Debug on");
+  #endif
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -134,11 +143,13 @@ void setup() {
       yield();
     }
   }
-  String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
-  char mess[100];
-  temp.toCharArray(mess,100);
-  Serial.println(temp);
-  client.publish(mqtt_status_topic, mess);
+  #ifdef DEBUG
+    String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
+    char mess[100];
+    temp.toCharArray(mess,100);
+    Serial.println(temp);
+    client.publish(mqtt_status_topic, mess);
+  #endif
 }
 
 bool initialize(uint32_t frequency) {
@@ -212,9 +223,11 @@ bool initialize(uint32_t frequency) {
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
 
-  char mess[ ] = "RFM69 init done";
-  Serial.println(mess);
-  client.publish(mqtt_status_topic, mess);
+  #ifdef DEBUG
+    char mess[ ] = "RFM69 init done";
+    Serial.println(mess);
+    client.publish(mqtt_status_topic, mess);
+  #endif
   return true;
 }
 
@@ -302,6 +315,7 @@ void interruptHandler() {
   }
   inInterrupt = true;
 
+
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
@@ -318,6 +332,10 @@ void interruptHandler() {
     // CRC is done BEFORE decrypting message
     uint16_t crc = crc16(TEMPDATA, 18);
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
+
+    #ifdef DEBUG
+       Serial.println("Got rf data");
+    #endif
 
     // Decrypt message
     for (size_t i = 0; i < 13; i++) {
@@ -389,6 +407,10 @@ void interruptHandler() {
 
     if (err=="CRC ERR") {
       Serial.println(err);
+      #ifdef DEBUG
+        client.publish(mqtt_status_topic, "CRC ERR");
+      #endif
+
     }
     else {
       //For Json output
