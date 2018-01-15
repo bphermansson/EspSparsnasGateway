@@ -497,7 +497,7 @@ void reconnect() {
     if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
       Serial.println("Connected to Mqtt broker");
     } else {
-      Serial.print("failed, rc=");
+      Serial.print("Mqtt connection failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
