@@ -42,6 +42,17 @@ The result can be seen in SparsnasHass.png.
 ###### Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. 
 
+The connection for the RFM69 is hardcoded. This is standard Spi connections set in the spi-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon. 
+
+The schematic shows a Nodemcu, but you can use another ESP8266-based device if you want (except the Esp-01). Use these pin mappings:
+
+NodeMcu - Esp12
+D1	- Gpio5
+D5	- Gpio14
+D6	- Gpio12
+D7	- Gpio13
+D8	- Gpio15
+
 The code is based on Sommarlovs version of Ludvig Strigeus code. 
 http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255
 https://github.com/strigeus/sparsnas_decoder
