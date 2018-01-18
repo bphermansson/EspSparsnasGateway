@@ -1,4 +1,10 @@
  /*
+  * TODO
+  * "CRC ERR" in debug mode is not sent as Json
+  * 
+  */
+ 
+ /*
  * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
  * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
  * 
@@ -309,6 +315,7 @@ void unselect() {
 }
 
 void interruptHandler() {
+  
   if (inInterrupt) {
     //Serial.println("Already in interruptHandler.");
     return;
