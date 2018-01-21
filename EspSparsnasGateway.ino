@@ -10,10 +10,14 @@
  * 
  */
 
- // Settings for the Mqtt broker:
+// Settings for the Mqtt broker:
 #define MQTT_USERNAME "emonpi"     
 #define MQTT_PASSWORD "emonpimqtt2016"  
 const char* mqtt_server = "192.168.1.79";
+
+// Wifi settings
+const char* ssid = "NETGEAR83";
+const char* password = "..........";
 
 // Set this to the value of your energy meter
 #define PULSES_PER_KWH 1000 // <- samma här, står på elmätaren
@@ -30,17 +34,24 @@ char* mqtt_status_topic = "EspSparsnasGateway/values";
 
 const char compile_date[] = __DATE__ " " __TIME__;
 
-// Wifi settings
-const char* ssid = "NETGEAR83";
-const char* password = "..........";
-
 #include <RFM69registers.h>
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+
+// OTA
 #include <ArduinoOTA.h>
+
+// Web firmware update
+/*
+const char* host = "EspSparsnasGateway";
+#include <ESP8266WebServer.h>
+#include <ESP8266HTTPUpdateServer.h>
+ESP8266WebServer httpServer(80);
+ESP8266HTTPUpdateServer httpUpdater;
+*/
 #include <ArduinoJson.h>
 
 // Mqtt
@@ -116,6 +127,13 @@ void setup() {
   });
   ArduinoOTA.begin();
 
+  // Web firmware update
+/*
+  MDNS.begin(host);
+  httpUpdater.setup(&httpServer);
+  httpServer.begin();
+  MDNS.addService("http", "tcp", 80);
+*/
   client.setServer(mqtt_server, 1883);
   //client.setCallback(callback); // What to do when a Mqtt message arrives
   if (!client.connected()) {
@@ -501,6 +519,8 @@ uint16_t crc16(volatile uint8_t *data, size_t n) {
 
 void loop() {
   ArduinoOTA.handle();
+  // Web firmware update
+  //httpServer.handleClient();
 
   // Mqtt
   if (!client.connected()) {
@@ -512,8 +532,9 @@ void loop() {
     lastRecievedData = millis();
     // Send data to Mqtt server
     Serial.println("We got data to send.");
+    client.publish(mqtt_status_topic, "We got data to send.");
+
     // Wait a bit
-    //codeLibrary.wait(500);
     delay(500);
   }
 }
