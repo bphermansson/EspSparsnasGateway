@@ -53,7 +53,10 @@ D6	- Gpio12
 D7	- Gpio13
 D8	- Gpio15
 
-Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability. 
+## Hardware hacks to ensure good RF performance.
+Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
+Keep the wires between the RFM69 module as short as possible and DO NOT make them 8 cm long hence that calculates into 1/4 wavelenth of 868 MHz.
+You will experiance interference and very poor performance if the above is not applied and followed.
 
 The code is based on Sommarlovs version of Ludvig Strigeus code. 
 http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255
