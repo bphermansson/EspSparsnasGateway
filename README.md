@@ -87,6 +87,8 @@ The result can be seen in SparsnasHass.png.
 ![alt text](https://github.com/bphermansson/EspSparsnasGateway/blob/master/SparsnasHass.png "Sparsnas in Home Assistant")
 
 ## Thanks!
-The code is based on Sommarlovs version of Ludvig Strigeus code. 
+The code is based on Sommarlovs version of Ludvig Strigeus code:
 http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255
+Strigeus original code for use with a DVB-T Usb dongle:
 https://github.com/strigeus/sparsnas_decoder
+
