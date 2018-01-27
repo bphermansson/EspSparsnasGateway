@@ -1,25 +1,32 @@
+# EspSparsnasGateway
+
 This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor 
 sends encoded data by radio to a control panel. This device collects the data 
 and sends it to Mqtt-enabled receivers in Json-format. Thus you need a Mqtt broker 
 in your network and adjust the settings  in the ino-file:
 
+```
 // Settings for the Mqtt broker:
 #define MQTT_USERNAME "<username>"    // If used by the broker     
 #define MQTT_PASSWORD "<password>"     //    -   *   -
 const char* mqtt_server = "192.168.1.79";  // Mqtt brokers IP
+```
 
 The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad. 
 This gives a CRC-error, the data is in this case not sent via Mqtt but printed via the serial port. 
 
 The data sent via Mqtt is in Json format and looks like this:
 
+```
 {"seq":13688,"power":2024,"total":1821.344,"battery":100}
+```
 
-###### Home Assistant
+##### Home Assistant
 The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
 In Home Assistant the sensors can look like this:
 
-# Sparnas energy monitor
+```
+\#Sparnas energy monitor
   - platform: mqtt
     state_topic: "EspSparsnasGateway/values"
     name: "House energy usage"
@@ -31,11 +38,14 @@ In Home Assistant the sensors can look like this:
     name: "House energy meter batt"
     unit_of_measurement: "%"
     value_template: '{{ float(value_json.battery) }}'
+```
 
 We then get these sensors: 
 
+```
 -sensor.house_energy_meter_batt
 -sensor.house_energy_usage
+```
 
 The result can be seen in SparsnasHass.png. 
 
@@ -46,12 +56,14 @@ The connection for the RFM69 is hardcoded. This is standard Spi connections set 
 
 The schematic shows a Nodemcu, but you can use another ESP8266-based device if you want (except the Esp-01). Use these pin mappings:
 
+```
 NodeMcu - Esp12
 D1	- Gpio5
 D5	- Gpio14
 D6	- Gpio12
 D7	- Gpio13
 D8	- Gpio15
+```
 
 ## Hardware hacks to ensure good RF performance.
 Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
