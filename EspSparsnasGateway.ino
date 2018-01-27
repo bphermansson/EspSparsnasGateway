@@ -135,7 +135,6 @@ void setup() {
   MDNS.addService("http", "tcp", 80);
 */
   client.setServer(mqtt_server, 1883);
-  //client.setCallback(callback); // What to do when a Mqtt message arrives
   if (!client.connected()) {
       reconnect();
   }
@@ -240,9 +239,11 @@ bool initialize(uint32_t frequency) {
     delay(1);
   }
   if (millis() - start >= timeout) {
-    char mess[ ] = "Failed on waiting for ModeReady()";
-    Serial.println(mess);
-    client.publish(mqtt_status_topic, mess);
+    #ifdef DEBUG
+      char mess[ ] = "Failed on waiting for ModeReady()";
+      Serial.println(mess);
+      client.publish(mqtt_status_topic, mess);
+    #endif
     return false;
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
