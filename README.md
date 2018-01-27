@@ -21,37 +21,7 @@ The data sent via Mqtt is in Json format and looks like this:
 {"seq":13688,"power":2024,"total":1821.344,"battery":100}
 ```
 
-##### Home Assistant
-The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
-In Home Assistant the sensors can look like this:
-
-```
-\#Sparnas energy monitor
-  - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
-    name: "House energy usage"
-    unit_of_measurement: "W"
-    value_template: '{{ float(value_json.power) | round(0)  }}'
-    
-  - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
-    name: "House energy meter batt"
-    unit_of_measurement: "%"
-    value_template: '{{ float(value_json.battery) }}'
-```
-
-We then get these sensors: 
-
-```
--sensor.house_energy_meter_batt
--sensor.house_energy_usage
-```
-
-The result can be seen in SparsnasHass.png. 
-
-![alt text](https://github.com/bphermansson/EspSparsnasGateway/blob/master/SparsnasHass.png "Sparsnas in Home Assistant")
-
-###### Hardware
+## Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. 
 
 The connection for the RFM69 is hardcoded. This is standard Spi connections set in the spi-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon. 
@@ -86,6 +56,37 @@ You can try to change this to:
 This makes the channel filter wider, 62.5khz instead of 31.3khz.
  
 
+## Home Assistant integration
+The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
+In Home Assistant the sensors can look like this:
+
+```
+\#Sparnas energy monitor
+  - platform: mqtt
+    state_topic: "EspSparsnasGateway/values"
+    name: "House energy usage"
+    unit_of_measurement: "W"
+    value_template: '{{ float(value_json.power) | round(0)  }}'
+    
+  - platform: mqtt
+    state_topic: "EspSparsnasGateway/values"
+    name: "House energy meter batt"
+    unit_of_measurement: "%"
+    value_template: '{{ float(value_json.battery) }}'
+```
+
+We then get these sensors: 
+
+```
+-sensor.house_energy_meter_batt
+-sensor.house_energy_usage
+```
+
+The result can be seen in SparsnasHass.png. 
+
+![alt text](https://github.com/bphermansson/EspSparsnasGateway/blob/master/SparsnasHass.png "Sparsnas in Home Assistant")
+
+## Thanks!
 The code is based on Sommarlovs version of Ludvig Strigeus code. 
 http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255
 https://github.com/strigeus/sparsnas_decoder
