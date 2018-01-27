@@ -46,6 +46,17 @@ If you want to learn more about the Rfm69 and get some tips & tricks, look at ht
 
 ## If it doesn't work
 As usual, check your connections one more time. If possible, solder the connections. Also make sure to use a good power supply, both the Esp and the Rfm69 want's that. 
+
+### Connect to computer
+You can use the device with a simple USB power supply and get data via Mqtt. The device also puts out more information via the serial port. You can connect it to a computer and look at the messages with a serial monitor, for example the one in the Arduino IDE or Minicom. The baudrate is 115200.
+
+### Enable debug
+Further more information is given by the device if debug is activated:
+
+```
+#define DEBUG 1
+
+### Change the channel filter width
 With some RFM's a software adjustment can be tested if the code doesn't work. Line 191 looks like this:
 ```
 /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_4}, // p26 in datasheet, filters out noise
