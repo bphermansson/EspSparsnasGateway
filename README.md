@@ -59,11 +59,16 @@ Further more information is given by the device if debug is activated:
 
 ### Change the channel filter width
 With some RFM's a software adjustment can be tested if the code doesn't work. Line 191 looks like this:
+
 ```
 /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_4}, // p26 in datasheet, filters out noise
 ```
+
 You can try to change this to:
- /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_3}, // p26 in datasheet, filters out noise
+
+```
+/* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_3}, // p26 in datasheet, filters out noise
+```
 
 This makes the channel filter wider, 62.5khz instead of 31.3khz.
  
