@@ -55,6 +55,7 @@ Further more information is given by the device if debug is activated:
 
 ```
 #define DEBUG 1
+```
 
 ### Change the channel filter width
 With some RFM's a software adjustment can be tested if the code doesn't work. Line 191 looks like this:
