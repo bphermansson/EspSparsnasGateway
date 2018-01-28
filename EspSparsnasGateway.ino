@@ -30,6 +30,8 @@ const char* password = "..........";
 // You dont have to change anything below
 
 char* mqtt_status_topic = "EspSparsnasGateway/values";
+const char* mqtt_sub_topic = "EspSparsnasGateway/control";
+
 #define appname "EspSparsnasGateway"
 
 const char compile_date[] = __DATE__ " " __TIME__;
@@ -135,6 +137,9 @@ void setup() {
   MDNS.addService("http", "tcp", 80);
 */
   client.setServer(mqtt_server, 1883);
+  client.setCallback(callback); // What to do when a Mqtt message arrives
+  boolean rc = client.subscribe(mqtt_sub_topic);
+
   if (!client.connected()) {
       reconnect();
   }
@@ -165,6 +170,11 @@ void setup() {
     while (1) {
       yield();
     }
+  }
+  else {
+    #ifdef DEBUG
+       Serial.println("Radio initialized.");
+    #endif
   }
   #ifdef DEBUG
     String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
@@ -410,6 +420,7 @@ void interruptHandler() {
       int power = (TEMPDATA[11] << 8 | TEMPDATA[12]);
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]);
       int battery = TEMPDATA[17];
+      uint16_t srssi = readRSSI();
       
       // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
@@ -422,45 +433,50 @@ void interruptHandler() {
       /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
       */
+
+      // Prepare for output
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
       output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
-      output += String(battery) + "% ";
-
+      output += String(battery) + "%, rssi ";
+      output += String(srssi);
       output += (crc == packet_crc ? "" : "CRC ERR");
       String err = (crc == packet_crc ? "" : "CRC ERR");
       Serial.println(output);
 
-    if (err=="CRC ERR") {
-      Serial.println(err);
-      #ifdef DEBUG
-        client.publish(mqtt_status_topic, "CRC ERR");
-      #endif
-
-    }
-    else {
-      //For Json output
       StaticJsonBuffer<150> jsonBuffer;
       JsonObject& root = jsonBuffer.createObject();
       char msg[150];
-      root["seq"] = seq;
-      root["power"] = String(watt);
-      root["total"] = String(pulse / PULSES_PER_KWH);
-      root["battery"] = battery;
+        
+      if (err=="CRC ERR") {
+        Serial.println(err);
+        #ifdef DEBUG
+          root["error"] = "CRC Error";
+        #endif
+      }
+      else {
+        root["seq"] = seq;
+        root["power"] = String(watt);
+        root["total"] = String(pulse / PULSES_PER_KWH);
+        root["battery"] = battery;
+        root["rssi"] = String(srssi);
+      }
       root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_status_topic, msg);  // Wants a char
-    }
+      client.publish(mqtt_status_topic, msg); 
     }
 
     unselect();
     setMode(RF69_MODE_RX);
   }
-  RSSI = readRSSI();
 
   inInterrupt = false;
 }
 
 void setMode(uint8_t newMode) {
+  #ifdef DEBUG
+     Serial.println("In setMode");
+  #endif
+      
   if (newMode == _mode) {
     return;
   }
@@ -503,6 +519,9 @@ void setMode(uint8_t newMode) {
 
 
 uint16_t crc16(volatile uint8_t *data, size_t n) {
+  #ifdef DEBUG
+    Serial.println("In crc16");
+  #endif
   uint16_t crcReg = 0xffff;
   size_t i, j;
   for (j = 0; j < n; j++) {
@@ -530,6 +549,7 @@ void loop() {
   client.loop();
   
   if (receiveDone()) {
+    // We never gets here!
     lastRecievedData = millis();
     // Send data to Mqtt server
     Serial.println("We got data to send.");
@@ -538,6 +558,12 @@ void loop() {
     // Wait a bit
     delay(500);
   }
+}
+
+
+// When a Mqtt message has arrived
+void callback(char* topic, byte* payload, unsigned int length) {
+  //ESP.restart();
 }
 
 void reconnect() {
