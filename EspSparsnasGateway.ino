@@ -1,13 +1,9 @@
  /*
-  * TODO
-  * "CRC ERR" in debug mode is not sent as Json
+  * https://github.com/bphermansson/EspSparsnasGateway
   * 
-  */
- 
- /*
- * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
- * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
- * 
+  * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
+  * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
+  * 
  */
 
 // Settings for the Mqtt broker:
@@ -110,7 +106,10 @@ void setup() {
   }
   WiFi.hostname(appname);
 
- ArduinoOTA.onStart([]() {
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname(appname);
+    
+  ArduinoOTA.onStart([]() {
     Serial.println("Start");
   });
   ArduinoOTA.onEnd([]() {
@@ -301,7 +300,7 @@ bool receiveDone() {
 }
 
 // get the received signal strength indicator (RSSI)
-uint16_t readRSSI(bool forceTrigger = false) {
+uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a crash...
   uint16_t rssi = 0;
   if (forceTrigger) {
     // RSSI trigger not needed if DAGC is in continuous mode
@@ -312,7 +311,9 @@ uint16_t readRSSI(bool forceTrigger = false) {
     }
   }
   rssi = -readReg(REG_RSSIVALUE);
+  //Serial.println(rssi);
   rssi >>= 1;
+  //Serial.println(rssi);
   return rssi;
 }
 
