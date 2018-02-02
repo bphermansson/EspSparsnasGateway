@@ -265,21 +265,6 @@ bool initialize(uint32_t frequency) {
   return true;
 }
 
-uint32_t getFrequency() {
-  return RF69_FSTEP * (((uint32_t)readReg(REG_FRFMSB) << 16) + ((uint16_t)readReg(REG_FRFMID) << 8) + readReg(REG_FRFLSB));
-}
-
-void receiveBegin() {
-  DATALEN = 0;
-  RSSI = 0;
-  if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY) {
-    uint8_t val = readReg(REG_PACKETCONFIG2);
-    // avoid RX deadlocks
-    writeReg(REG_PACKETCONFIG2, (val & 0xFB) | RF_PACKET2_RXRESTART);
-  }
-  setMode(RF69_MODE_RX);
-}
-
 // checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool receiveDone() {
   // noInterrupts(); // re-enabled in unselect() via setMode() or via
@@ -547,8 +532,13 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  client.loop();
   
+  client.loop();
+  /*String temp = String(millis());
+  char mess[20];
+  temp.toCharArray(mess,20);
+  client.publish(mqtt_status_topic, mess);
+  */
   if (receiveDone()) {
     // We never gets here!
     lastRecievedData = millis();
@@ -573,7 +563,14 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
-      Serial.println("Connected to Mqtt broker");
+      #ifdef DEBUG
+        String temp = "Connected to Mqtt broker as " + String(appname);
+        char mess[100];
+        temp.toCharArray(mess,100);
+        Serial.println(temp);
+        client.publish(mqtt_status_topic, mess);
+      #endif
+      
     } else {
       Serial.print("Mqtt connection failed, rc=");
       Serial.print(client.state());
