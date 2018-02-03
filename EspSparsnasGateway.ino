@@ -449,8 +449,8 @@ void interruptHandler() {
       }
       else {
         root["seq"] = seq;
-        root["power"] = String(watt);
-        root["total"] = String(pulse / PULSES_PER_KWH);
+        root["power"] = float(watt);
+        root["total"] = float(pulse / PULSES_PER_KWH);
         root["battery"] = battery;
         root["rssi"] = String(srssi);
       }
