@@ -201,7 +201,8 @@ bool initialize(uint32_t frequency) {
     /* 0x25 */ {REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01},              // PayloadReady
     /* 0x26 */ {REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF},          // DIO5 ClkOut disable for power saving
     /* 0x28 */ {REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN},              // writing to this bit ensures that the FIFO & status flags are reset
-    /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},                    
+    /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},         
+    /* 0x2B */ {REG_RXTIMEOUT2, (uint8_t)0x00}, // RegRxTimeout2 (0x2B) interrupt is generated TimeoutRssiThresh *16*T bit after Rssi interrupt if PayloadReady interrupt doesn’t occur.                    
     /* 0x2D */ {REG_PREAMBLELSB, 3}, // default 3 preamble bytes 0xAAAAAA
     /* 0x2E */ {REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0},
     /* 0x2F */ {REG_SYNCVALUE1, (uint8_t)(SYNCVALUE >> 8)},
@@ -402,11 +403,17 @@ void interruptHandler() {
       }
       Serial.println(output);
       */
-      int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);
-      int power = (TEMPDATA[11] << 8 | TEMPDATA[12]);
-      int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]);
-      int battery = TEMPDATA[17];
+
+      // Ref: https://github.com/strigeus/sparsnas_decoder
+      int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
+      int power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
+      int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
+      int battery = TEMPDATA[17]; // Battery level, 0-100.
       uint16_t srssi = readRSSI();
+
+      // This is how to convert the 'effect' field into Watt:
+      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
+      
       
       // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
