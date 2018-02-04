@@ -70,7 +70,7 @@ uint32_t FREQUENCY = 868000000;
 uint16_t BITRATE = FXOSC / 40000; // 40kBps
 uint16_t FREQUENCYDEVIATION = 10000 / RF69_FSTEP; // 10kHz
 uint16_t SYNCVALUE = 0xd201;
-uint8_t RSSITHRESHOLD = 210; // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
+uint8_t RSSITHRESHOLD = 0xE4; // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
 uint8_t PAYLOADLENGTH = 20;
 
 #define _interruptNum 5
@@ -291,6 +291,8 @@ uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a
   if (forceTrigger) {
     // RSSI trigger not needed if DAGC is in continuous mode
     writeReg(REG_RSSICONFIG, RF_RSSI_START);
+          client.publish(mqtt_status_topic, "In rssi read"); 
+
     while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00) {
       // wait for RSSI_Ready
       yield();
@@ -298,7 +300,7 @@ uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a
   }
   rssi = -readReg(REG_RSSIVALUE);
   //Serial.println(rssi);
-  rssi >>= 1;
+  //rssi >>= 1;
   //Serial.println(rssi);
   return rssi;
 }
@@ -338,8 +340,15 @@ void interruptHandler() {
   }
   inInterrupt = true;
 
-
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
+
+    // Read Rssi
+    char crssi[25];
+    int16_t srssi;
+    srssi = readRSSI();
+    dtostrf(srssi, 16, 0, crssi);
+    //client.publish(mqtt_status_topic, crssi); 
+    
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
     select();
@@ -409,7 +418,7 @@ void interruptHandler() {
       int power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       int battery = TEMPDATA[17]; // Battery level, 0-100.
-      uint16_t srssi = readRSSI();
+      //uint16_t srssi = readRSSI();
 
       // This is how to convert the 'effect' field into Watt:
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
