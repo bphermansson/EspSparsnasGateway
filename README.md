@@ -103,6 +103,10 @@ The result can be seen in SparsnasHass.png.
 
 ![alt text](https://github.com/bphermansson/EspSparsnasGateway/blob/master/SparsnasHass.png "Sparsnas in Home Assistant")
 
+## Protocol analysis
+For much more information about the hardware, the protocol and how to analyse the transmission, see
+Kodarn's Github, https://github.com/kodarn/Sparsnas.
+
 ## Thanks!
 The code is based on Sommarlovs version of Ludvig Strigeus code:
 http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255

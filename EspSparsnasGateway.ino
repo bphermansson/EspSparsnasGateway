@@ -28,6 +28,7 @@ const char* password = "..........";
 char* mqtt_status_topic = "EspSparsnasGateway/values";
 const char* mqtt_sub_topic = "EspSparsnasGateway/control";
 
+
 #define appname "EspSparsnasGateway"
 
 const char compile_date[] = __DATE__ " " __TIME__;
@@ -38,6 +39,9 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+
+// Make it possible to read Vcc from code
+ADC_MODE(ADC_VCC);
 
 // OTA
 #include <ArduinoOTA.h>
@@ -78,29 +82,34 @@ uint8_t PAYLOADLENGTH = 20;
 static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
-static volatile uint16_t RSSI; // Most accurate RSSI during reception (closest to the reception)
+//static volatile uint16_t RSSI; // Most accurate RSSI during reception (closest to the reception)
 static volatile uint8_t _mode;
 static volatile bool inInterrupt = false; // Fake Mutex
 uint8_t enc_key[5];
+uint16_t rssi = 0;
 
-unsigned long lastCheckedForUpdate = millis();
+uint16_t readRSSI();
+
+//unsigned long lastCheckedForUpdate = millis();
 unsigned long lastRecievedData = millis();
 
 // ----------------------------------------------------
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Welcome to EspSparsnasGateway");
-  Serial.print ("Compiled at:");
+  Serial.println(F("Welcome to EspSparsnasGateway"));
+  Serial.print (F("Compiled at:"));
   Serial.println(compile_date);
   #ifdef DEBUG
-     Serial.println("Debug on");
+     Serial.println(F("Debug on"));
+     Serial.print (F("Vcc="));
+     Serial.println(ESP.getVcc());
   #endif
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println("Connection Failed! Rebooting...");
+    Serial.println(F("Connection Failed! Rebooting..."));
     delay(5000);
     ESP.restart();
   }
@@ -127,7 +136,10 @@ void setup() {
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
-
+  #ifdef DEBUG
+    Serial.print("Over The Air programming enabled, port: ");
+    Serial.println(appname);
+  #endif
   // Web firmware update
 /*
   MDNS.begin(host);
@@ -144,8 +156,8 @@ void setup() {
   }
 
   // Publish some info, first via serial, then Mqtt
-  Serial.println("Ready");
-  Serial.print("IP address: ");
+  Serial.println(F("Ready"));
+  Serial.print(F("IP address: "));
   Serial.println(WiFi.localIP());
 
   IPAddress ip = WiFi.localIP();
@@ -172,7 +184,7 @@ void setup() {
   }
   else {
     #ifdef DEBUG
-       Serial.println("Radio initialized.");
+       Serial.println(F("Radio initialized."));
     #endif
   }
   #ifdef DEBUG
@@ -285,53 +297,6 @@ bool receiveDone() {
   return false;
 }
 
-// get the received signal strength indicator (RSSI)
-uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a crash...
-  uint16_t rssi = 0;
-  if (forceTrigger) {
-    // RSSI trigger not needed if DAGC is in continuous mode
-    writeReg(REG_RSSICONFIG, RF_RSSI_START);
-          client.publish(mqtt_status_topic, "In rssi read"); 
-
-    while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00) {
-      // wait for RSSI_Ready
-      yield();
-    }
-  }
-  rssi = -readReg(REG_RSSIVALUE);
-  //Serial.println(rssi);
-  //rssi >>= 1;
-  //Serial.println(rssi);
-  return rssi;
-}
-
-uint8_t readReg(uint8_t addr) {
-  select();
-  SPI.transfer(addr & 0x7F);
-  uint8_t regval = SPI.transfer(0);
-  unselect();
-  return regval;
-}
-
-void writeReg(uint8_t addr, uint8_t value) {
-  select();
-  SPI.transfer(addr | 0x80);
-  SPI.transfer(value);
-  unselect();
-}
-
-// select the RFM69 transceiver (save SPI settings, set CS low)
-void select() {
-  // noInterrupts();
-  digitalWrite(SS, LOW);
-}
-
-// unselect the RFM69 transceiver (set CS high, restore SPI settings)
-void unselect() {
-  digitalWrite(SS, HIGH);
-  // interrupts();
-}
-
 void interruptHandler() {
   
   if (inInterrupt) {
@@ -366,7 +331,7 @@ void interruptHandler() {
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
     #ifdef DEBUG
-       Serial.println("Got rf data");
+       Serial.println(F("Got rf data"));
     #endif
 
     // Decrypt message
@@ -418,11 +383,9 @@ void interruptHandler() {
       int power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       int battery = TEMPDATA[17]; // Battery level, 0-100.
-      //uint16_t srssi = readRSSI();
 
       // This is how to convert the 'effect' field into Watt:
-      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
-      
+      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.      
       
       // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
@@ -435,15 +398,26 @@ void interruptHandler() {
       /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
       */
-
+      #ifdef DEBUG
+        // Print menory usage in debug mode
+        int heap = ESP.getFreeHeap(); 
+        Serial.print(F("Memory usage: ")); 
+        Serial.println (heap);
+      #endif
+        
       // Prepare for output
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
       output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
       output += String(battery) + "%, rssi ";
-      output += String(srssi);
+      output += String(srssi) + "dBm. Power(raw): ";
+      output += String(power) + " ";
       output += (crc == packet_crc ? "" : "CRC ERR");
       String err = (crc == packet_crc ? "" : "CRC ERR");
+
+      float vcc = ESP.getVcc();
+      output += "Vcc: " + String(vcc) + "mV";     
+      
       Serial.println(output);
 
       StaticJsonBuffer<150> jsonBuffer;
@@ -458,10 +432,11 @@ void interruptHandler() {
       }
       else {
         root["seq"] = seq;
-        root["power"] = float(watt);
+        root["watt"] = float(watt);
         root["total"] = float(pulse / PULSES_PER_KWH);
         root["battery"] = battery;
         root["rssi"] = String(srssi);
+        root["power"] = String(power);
       }
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg); 
@@ -476,7 +451,7 @@ void interruptHandler() {
 
 void setMode(uint8_t newMode) {
   #ifdef DEBUG
-     Serial.println("In setMode");
+     Serial.println(F("In setMode"));
   #endif
       
   if (newMode == _mode) {
@@ -559,7 +534,7 @@ void loop() {
     // We never gets here!
     lastRecievedData = millis();
     // Send data to Mqtt server
-    Serial.println("We got data to send.");
+    Serial.println(F("We got data to send."));
     client.publish(mqtt_status_topic, "We got data to send.");
 
     // Wait a bit
@@ -570,6 +545,8 @@ void loop() {
 
 // When a Mqtt message has arrived
 void callback(char* topic, byte* payload, unsigned int length) {
+    client.publish(mqtt_status_topic, "Got a Mqtt mess.");
+
   //ESP.restart();
 }
 
@@ -581,8 +558,8 @@ void reconnect() {
     if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
       #ifdef DEBUG
         String temp = "Connected to Mqtt broker as " + String(appname);
-        char mess[100];
-        temp.toCharArray(mess,100);
+        char mess[sizeof(temp)];
+        temp.toCharArray(mess,sizeof(temp));
         Serial.println(temp);
         client.publish(mqtt_status_topic, mess);
       #endif
