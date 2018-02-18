@@ -72,6 +72,24 @@ You can try to change this to:
 
 This makes the channel filter wider, 62.5khz instead of 31.3khz.
  
+## Control device via Mqtt
+You can send messages to the device via Mqtt. There are four topics that can be used:
+
+```
+EspSparsnasGateway/settings/frequency - Set the receiver frequency in the message payload and reboot.
+EspSparsnasGateway/settings/senderid  - Set the sender id in the payload and reboot.
+EspSparsnasGateway/settings/clear     - Clear stored settings and reboot.
+EspSparsnasGateway/settings/reset     - Reset the device.
+```
+
+Examples:
+```
+... -t 'EspSparsnasGateway/settings/senderid' -m '643654'
+... -t 'EspSparsnasGateway/settings/frequency' -m '867999900'
+... -t 'EspSparsnasGateway/settings/reset' -m ''
+```
+
+Note that this doesn't work the first time after the code has been uploaded, the Esp has to be reset manually before it can be reset properly via software. This is a known bug in the SDK. 
 
 ## Home Assistant integration
 The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
