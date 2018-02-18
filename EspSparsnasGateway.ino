@@ -36,7 +36,11 @@ const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 const char compile_date[] = __DATE__ " " __TIME__;
 
+// Sometimes you need to change how files are included:
+// If the code doesnt compile, try to comment the row below and uncomment the next:
 #include <RFM69registers.h>
+//#include "RFM69registers.h"
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
