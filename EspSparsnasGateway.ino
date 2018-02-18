@@ -16,7 +16,7 @@ const char* ssid = "NETGEAR83";
 const char* password = "..........";
 
 // Set this to the value of your energy meter
-#define PULSES_PER_KWH 1000 // <- samma här, står på elmätaren
+#define PULSES_PER_KWH 1000
 // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
 // Set SENSOR_ID to the last six digits, ie '643654'.
 #define SENSOR_ID 643654 
@@ -26,8 +26,11 @@ const char* password = "..........";
 // You dont have to change anything below
 
 char* mqtt_status_topic = "EspSparsnasGateway/values";
-const char* mqtt_sub_topic = "EspSparsnasGateway/control";
-
+//const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
+const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
+const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid"; 
+const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
+const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 #define appname "EspSparsnasGateway"
 
@@ -39,6 +42,7 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+#include <EEPROM.h>
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -106,6 +110,45 @@ void setup() {
      Serial.println(ESP.getVcc());
   #endif
 
+  // Enable Eeprom for permanent storage
+  EEPROM.begin(512);
+  bool storedValues;
+  // Read stored values
+  String freq, sendid;
+  uint32_t isendid;
+
+  // Read stored config status. Write this bit when storing settings
+  char savedSettings = char(EEPROM.read(0)); 
+
+  #ifdef DEBUG
+    Serial.print("Stored data: ");
+    Serial.println(savedSettings, DEC);
+  #endif
+  
+  if (savedSettings==1) {
+     Serial.println("There are stored settings");
+     // Read them
+     for (int i = 1; i < 10; ++i)
+     {
+        char curC = char(EEPROM.read(i)); 
+        freq += curC;
+     }
+     #ifdef DEBUG
+       Serial.print("Stored frequency: ");
+       Serial.println(freq);
+     #endif
+     for (int i = 10; i < 16; ++i)
+     {
+        char curC = char(EEPROM.read(i)); 
+        sendid += curC;
+     }
+     #ifdef DEBUG
+       Serial.print("Stored sender id: ");
+       Serial.println(sendid);
+      #endif
+      isendid = sendid.toInt();
+       
+  }
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -149,8 +192,8 @@ void setup() {
 */
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback); // What to do when a Mqtt message arrives
-  boolean rc = client.subscribe(mqtt_sub_topic);
-
+  //client.subscribe(mqtt_sub_topic_freq);
+  //client.subscribe(mqtt_sub_topic_senderid);
   if (!client.connected()) {
       reconnect();
   }
@@ -166,14 +209,30 @@ void setup() {
   client.publish(mqtt_status_topic, buf);
   
   // Calc encryption key, used for bytes 5-17
-  const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
+  //Serial.println(SENSOR_ID);
+  //Serial.println(isendid);
+  
+  //const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
+  const uint32_t sensor_id_sub = isendid - 0x5D38E8CB;
+  //const uint32_t sensor_id_subtest = isendid - 0x5D38E8CB;
+  
   enc_key[0] = (uint8_t)(sensor_id_sub >> 24);
   enc_key[1] = (uint8_t)(sensor_id_sub);
   enc_key[2] = (uint8_t)(sensor_id_sub >> 8);
   enc_key[3] = 0x47;
   enc_key[4] = (uint8_t)(sensor_id_sub >> 16);
-
-  if (!initialize(FREQUENCY)) {
+/*
+  Serial.print("Enc key: ");
+  for (int y=0;y<5;y++) {
+    Serial.println(enc_key[y]);
+  }
+*/
+  uint32_t iFreq = freq.toInt();
+  #ifdef DEBUG
+    Serial.print("Stored freq: ");
+    Serial.println(iFreq);
+  #endif
+  if (!initialize(iFreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
     client.publish(mqtt_status_topic, mess);
@@ -197,7 +256,10 @@ void setup() {
 }
 
 bool initialize(uint32_t frequency) {
+  //Serial.println(frequency);
   frequency = frequency / RF69_FSTEP;
+  //Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
+  //Serial.println(frequency);
 
   const uint8_t CONFIG[][2] = {
     /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
@@ -312,7 +374,6 @@ void interruptHandler() {
     int16_t srssi;
     srssi = readRSSI();
     dtostrf(srssi, 16, 0, crssi);
-    //client.publish(mqtt_status_topic, crssi); 
     
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
@@ -451,7 +512,7 @@ void interruptHandler() {
 
 void setMode(uint8_t newMode) {
   #ifdef DEBUG
-     Serial.println(F("In setMode"));
+     //Serial.println(F("In setMode"));
   #endif
       
   if (newMode == _mode) {
@@ -497,7 +558,7 @@ void setMode(uint8_t newMode) {
 
 uint16_t crc16(volatile uint8_t *data, size_t n) {
   #ifdef DEBUG
-    Serial.println("In crc16");
+    //Serial.println("In crc16");
   #endif
   uint16_t crcReg = 0xffff;
   size_t i, j;
@@ -543,12 +604,7 @@ void loop() {
 }
 
 
-// When a Mqtt message has arrived
-void callback(char* topic, byte* payload, unsigned int length) {
-    client.publish(mqtt_status_topic, "Got a Mqtt mess.");
 
-  //ESP.restart();
-}
 
 void reconnect() {
   // Loop until we're reconnected
@@ -556,6 +612,10 @@ void reconnect() {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
     if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
+      client.subscribe(mqtt_sub_topic_freq);
+      client.subscribe(mqtt_sub_topic_senderid);
+      client.subscribe(mqtt_sub_topic_clear);
+      client.subscribe(mqtt_sub_topic_reset);
       #ifdef DEBUG
         String temp = "Connected to Mqtt broker as " + String(appname);
         char mess[sizeof(temp)];
