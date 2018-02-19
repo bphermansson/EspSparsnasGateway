@@ -26,6 +26,8 @@ const char* password = "..........";
 // You dont have to change anything below
 
 char* mqtt_status_topic = "EspSparsnasGateway/values";
+char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
 const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
 const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid"; 
@@ -210,7 +212,7 @@ void setup() {
   IPAddress ip = WiFi.localIP();
   char buf[60];
   sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
-  client.publish(mqtt_status_topic, buf);
+  client.publish(mqtt_debug_topic, buf);
   
   // Calc encryption key, used for bytes 5-17
   //Serial.println(SENSOR_ID);
@@ -239,7 +241,7 @@ void setup() {
   if (!initialize(iFreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
-    client.publish(mqtt_status_topic, mess);
+    client.publish(mqtt_debug_topic, mess);
 
     while (1) {
       yield();
@@ -255,7 +257,7 @@ void setup() {
     char mess[100];
     temp.toCharArray(mess,100);
     Serial.println(temp);
-    client.publish(mqtt_status_topic, mess);
+    client.publish(mqtt_debug_topic, mess);
   #endif
 }
 
@@ -330,7 +332,7 @@ bool initialize(uint32_t frequency) {
     #ifdef DEBUG
       char mess[ ] = "Failed on waiting for ModeReady()";
       Serial.println(mess);
-      client.publish(mqtt_status_topic, mess);
+      client.publish(mqtt_debug_topic, mess);
     #endif
     return false;
   }
@@ -339,7 +341,7 @@ bool initialize(uint32_t frequency) {
   #ifdef DEBUG
     char mess[ ] = "RFM69 init done";
     Serial.println(mess);
-    client.publish(mqtt_status_topic, mess);
+    client.publish(mqtt_debug_topic, mess);
   #endif
   return true;
 }
@@ -600,7 +602,7 @@ void loop() {
     lastRecievedData = millis();
     // Send data to Mqtt server
     Serial.println(F("We got data to send."));
-    client.publish(mqtt_status_topic, "We got data to send.");
+    client.publish(mqtt_debug_topic, "We got data to send.");
 
     // Wait a bit
     delay(500);
@@ -625,7 +627,7 @@ void reconnect() {
         char mess[sizeof(temp)];
         temp.toCharArray(mess,sizeof(temp));
         Serial.println(temp);
-        client.publish(mqtt_status_topic, mess);
+        client.publish(mqtt_debug_topic, mess);
       #endif
       
     } else {

@@ -62,7 +62,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         EEPROM.write(i, 0);
       }
       EEPROM.commit();
-      client.publish(mqtt_status_topic, "Settings cleared");
+      client.publish(mqtt_debug_topic, "Settings cleared");
       delay(10);
       ESP.reset();
   }
