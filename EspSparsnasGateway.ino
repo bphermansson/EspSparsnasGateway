@@ -212,7 +212,13 @@ void setup() {
   IPAddress ip = WiFi.localIP();
   char buf[60];
   sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
-  client.publish(mqtt_debug_topic, buf);
+  Serial.println(buf);
+  StaticJsonBuffer<150> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  char msg[150];
+  root["status"] = buf;
+  root.printTo((char*)msg, root.measureLength() + 1);
+  client.publish(mqtt_debug_topic, msg);
   
   // Calc encryption key, used for bytes 5-17
   //Serial.println(SENSOR_ID);
@@ -241,7 +247,13 @@ void setup() {
   if (!initialize(iFreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
-    client.publish(mqtt_debug_topic, mess);
+
+    StaticJsonBuffer<150> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    char msg[150];
+    root["status"] = mess;
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
 
     while (1) {
       yield();
@@ -254,10 +266,11 @@ void setup() {
   }
   #ifdef DEBUG
     String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
-    char mess[100];
-    temp.toCharArray(mess,100);
     Serial.println(temp);
-    client.publish(mqtt_debug_topic, mess);
+    
+    root["status"] = temp;
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
   #endif
 }
 
@@ -332,7 +345,14 @@ bool initialize(uint32_t frequency) {
     #ifdef DEBUG
       char mess[ ] = "Failed on waiting for ModeReady()";
       Serial.println(mess);
-      client.publish(mqtt_debug_topic, mess);
+
+      StaticJsonBuffer<150> jsonBuffer;
+      JsonObject& root = jsonBuffer.createObject();
+      char msg[150];
+      root["status"] = mess;
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+      
     #endif
     return false;
   }
@@ -341,29 +361,17 @@ bool initialize(uint32_t frequency) {
   #ifdef DEBUG
     char mess[ ] = "RFM69 init done";
     Serial.println(mess);
-    client.publish(mqtt_debug_topic, mess);
+
+    StaticJsonBuffer<150> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    char msg[150];
+    root["status"] = mess;
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_status_topic, msg);
   #endif
   return true;
 }
 
-// checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
-bool receiveDone() {
-  // noInterrupts(); // re-enabled in unselect() via setMode() or via
-  // receiveBegin()
-
-  if (_mode == RF69_MODE_RX && DATALEN > 0) {
-    setMode(RF69_MODE_STANDBY); // enables interrupts
-    return true;
-
-  } else if (_mode == RF69_MODE_RX) {
-    // already in RX no payload yet
-    // interrupts(); // explicitly re-enable interrupts
-    return false;
-  }
-
-  receiveBegin();
-  return false;
-}
 
 void interruptHandler() {
   
@@ -562,25 +570,6 @@ void setMode(uint8_t newMode) {
 }
 
 
-uint16_t crc16(volatile uint8_t *data, size_t n) {
-  #ifdef DEBUG
-    //Serial.println("In crc16");
-  #endif
-  uint16_t crcReg = 0xffff;
-  size_t i, j;
-  for (j = 0; j < n; j++) {
-    uint8_t crcData = data[j];
-    for (i = 0; i < 8; i++) {
-      if (((crcReg & 0x8000) >> 8) ^ (crcData & 0x80))
-        crcReg = (crcReg << 1) ^ 0x8005;
-      else
-        crcReg = (crcReg << 1);
-      crcData <<= 1;
-    }
-  }
-  return crcReg;
-}
-
 void loop() {
   ArduinoOTA.handle();
   // Web firmware update
@@ -609,9 +598,6 @@ void loop() {
   }
 }
 
-
-
-
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
@@ -624,10 +610,13 @@ void reconnect() {
       client.subscribe(mqtt_sub_topic_reset);
       #ifdef DEBUG
         String temp = "Connected to Mqtt broker as " + String(appname);
-        char mess[sizeof(temp)];
-        temp.toCharArray(mess,sizeof(temp));
         Serial.println(temp);
-        client.publish(mqtt_debug_topic, mess);
+        StaticJsonBuffer<150> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        char msg[150];
+        root["status"] = temp;
+        root.printTo((char*)msg, root.measureLength() + 1);
+        client.publish(mqtt_debug_topic, msg);
       #endif
       
     } else {

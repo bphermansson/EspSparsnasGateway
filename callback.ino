@@ -1,5 +1,9 @@
 // When a Mqtt message has arrived
 void callback(char* topic, byte* payload, unsigned int length) {
+  StaticJsonBuffer<150> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  char msg[150];
+  
   //client.publish(mqtt_status_topic, "Got a Mqtt mess.");
   //Serial.print("Topic: ");
   //Serial.println(topic);
@@ -36,6 +40,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
       }
       EEPROM.commit();
+
+      root["status"] = "Frequency changed";
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+      
       delay(10);
       ESP.reset();
 
@@ -53,6 +62,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.println(stringPayload[i-10]);
       }
       EEPROM.commit();
+
+      root["status"] = "Sender id changed";
+      root["NewSenderId"] = stringPayload;
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+      
       delay(10);
       ESP.reset();      
   }
@@ -62,12 +77,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
         EEPROM.write(i, 0);
       }
       EEPROM.commit();
-      client.publish(mqtt_debug_topic, "Settings cleared");
+      
+      root["status"] = "Settings cleared";
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+
       delay(10);
       ESP.reset();
   }
     if(strcmp(topic, "EspSparsnasGateway/settings/reset") == 0) {  
       Serial.println("Reset");
+      root["status"] = "Reset";
+      root.printTo((char*)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
       ESP.reset();
     }
 }
