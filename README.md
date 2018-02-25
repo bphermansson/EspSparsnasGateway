@@ -18,8 +18,13 @@ This gives a CRC-error, the data is in this case not sent via Mqtt but printed v
 The data sent via Mqtt is in Json format and looks like this:
 
 ```
-{"seq":13688,"power":2024,"total":1821.344,"battery":100}
+ {"seq":63009,"watt":5120,"total":5985,"battery":100,"rssi":"-136","power":"720","pulse":"5985167"}
+
 ```
+
+
+The device uses two Mqtt topics to publish, EspSparsnasGateway/values and EspSparsnasGateway/debug.
+
 
 ## Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire. 

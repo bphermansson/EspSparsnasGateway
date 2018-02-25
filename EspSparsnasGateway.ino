@@ -367,7 +367,7 @@ bool initialize(uint32_t frequency) {
     char msg[150];
     root["status"] = mess;
     root.printTo((char*)msg, root.measureLength() + 1);
-    client.publish(mqtt_status_topic, msg);
+    client.publish(mqtt_debug_topic, msg);
   #endif
   return true;
 }
@@ -455,7 +455,7 @@ void interruptHandler() {
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
       int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
-      int power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
+      uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       int battery = TEMPDATA[17]; // Battery level, 0-100.
 
@@ -512,6 +512,7 @@ void interruptHandler() {
         root["battery"] = battery;
         root["rssi"] = String(srssi);
         root["power"] = String(power);
+        root["pulse"] = String(pulse);
       }
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg); 
