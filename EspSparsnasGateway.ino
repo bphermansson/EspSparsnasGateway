@@ -469,6 +469,8 @@ void interruptHandler() {
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
       if(data4 == 1){
            watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+      } else if (data4 == 0) { // special mode for low power usage
+           watt = power * 0.24 / PULSES_PER_KWH;
       }
       /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
