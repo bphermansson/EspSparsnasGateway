@@ -49,6 +49,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <EEPROM.h>
+#include <ESP8266WebServer.h>
+ESP8266WebServer server(80);
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -272,6 +274,11 @@ void setup() {
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
   #endif
+
+  // Web server for configuration
+  server.begin();
+  server.on("/", handleRoot);
+  
 }
 
 bool initialize(uint32_t frequency) {
@@ -582,8 +589,11 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  
   client.loop();
+
+  // Web server
+  server.handleClient();
+     
   /*String temp = String(millis());
   char mess[20];
   temp.toCharArray(mess,20);
