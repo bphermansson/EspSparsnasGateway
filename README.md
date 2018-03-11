@@ -90,11 +90,12 @@ EspSparsnasGateway/settings/reset     - Reset the device.
 Examples:
 ```
 ... -t 'EspSparsnasGateway/settings/senderid' -m '643654'
-... -t 'EspSparsnasGateway/settings/frequency' -m '867999900'
+... -t 'EspSparsnasGateway/settings/frequency' -m '867.99'
 ... -t 'EspSparsnasGateway/settings/reset' -m ''
 ```
 
 Note that this doesn't work the first time after the code has been uploaded, the Esp has to be reset manually before it can be reset properly via software. This is a known bug in the SDK. 
+Also note that the frequency can't be set exactly now, don't know why.
 
 ## Home Assistant integration
 The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
