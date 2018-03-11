@@ -19,6 +19,7 @@ const char* password = "..........";
 #define PULSES_PER_KWH 1000
 // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
 // Set SENSOR_ID to the last six digits, ie '643654'.
+// You can also set this later via Mqtt settings message, see docs.
 #define SENSOR_ID 643654 
 
 #define DEBUG 1
@@ -106,6 +107,9 @@ unsigned long lastRecievedData = millis();
 // ----------------------------------------------------
 
 void setup() {
+  StaticJsonBuffer<150> jsonBuffer;
+  JsonObject& root = jsonBuffer.createObject();
+  char msg[150];
   Serial.begin(115200);
   Serial.println(F("Welcome to EspSparsnasGateway"));
   Serial.print (F("Compiled at:"));
@@ -116,45 +120,6 @@ void setup() {
      Serial.println(ESP.getVcc());
   #endif
 
-  // Enable Eeprom for permanent storage
-  EEPROM.begin(512);
-  bool storedValues;
-  // Read stored values
-  String freq, sendid;
-  uint32_t isendid;
-
-  // Read stored config status. Write this bit when storing settings
-  char savedSettings = char(EEPROM.read(0)); 
-
-  #ifdef DEBUG
-    Serial.print("Stored data: ");
-    Serial.println(savedSettings, DEC);
-  #endif
-  
-  if (savedSettings==1) {
-     Serial.println("There are stored settings");
-     // Read them
-     for (int i = 1; i < 10; ++i)
-     {
-        char curC = char(EEPROM.read(i)); 
-        freq += curC;
-     }
-     #ifdef DEBUG
-       Serial.print("Stored frequency: ");
-       Serial.println(freq);
-     #endif
-     for (int i = 10; i < 16; ++i)
-     {
-        char curC = char(EEPROM.read(i)); 
-        sendid += curC;
-     }
-     #ifdef DEBUG
-       Serial.print("Stored sender id: ");
-       Serial.println(sendid);
-      #endif
-      isendid = sendid.toInt();
-       
-  }
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -164,6 +129,119 @@ void setup() {
   }
   WiFi.hostname(appname);
 
+  // Setup Mqtt connection
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback); // What to do when a Mqtt message arrives
+  //client.subscribe(mqtt_sub_topic_freq);
+  //client.subscribe(mqtt_sub_topic_senderid);
+  if (!client.connected()) {
+      reconnect();
+  }
+
+  // Enable Eeprom for permanent storage
+  EEPROM.begin(512);
+  bool storedValues;
+  // Read stored values
+  String freq, sendid;
+  uint32_t ifreq;
+  uint32_t isendid;
+
+  // Read stored config status. Write this bit when storing settings
+  char savedSettingFreq = char(EEPROM.read(0)); 
+  char savedSettingSenderid = char(EEPROM.read(1)); 
+/*  
+  root["savedFrequency"] = savedSettingFreq;
+  root["savedSenderid"] = savedSettingSenderid;
+  root.printTo((char*)msg, root.measureLength() + 1);
+  client.publish(mqtt_debug_topic, msg);
+*/
+  #ifdef DEBUG
+    Serial.println("Stored data: ");
+    if (savedSettingFreq == 1) {
+      Serial.println("Found a stored frequency");  
+    }
+    if (savedSettingSenderid == 1){
+      Serial.println("Found a stored senderid"); 
+    } 
+  #endif
+  
+  if (savedSettingFreq==1) {
+     //Serial.println("Frequency stored");
+     // Read them
+     for (int i = 2; i < 8; ++i)
+     {
+        char curC = char(EEPROM.read(i)); 
+        freq += curC;
+     }
+     
+     #ifdef DEBUG
+       Serial.print("Stored frequency: ");
+       Serial.println(freq);
+     #endif
+     // Adjust to real value 868000000
+     // ifreq is a value like '868.00'
+     freq.trim();
+     String lft = freq.substring(0,3);
+     String rgt = freq.substring(4,6);
+     String tot = lft + rgt;
+     //Serial.println(lft);
+     //Serial.println(rgt);
+     //Serial.println(tot);
+     
+     ifreq=tot.toInt();
+     //Serial.println(tot);
+     
+     ifreq=ifreq*10000;
+     #ifdef DEBUG
+      Serial.print("Calculated frequency: ");
+      Serial.println(ifreq);
+     #endif
+  }
+  else {
+    #ifdef DEBUG
+     Serial.println("There are no stored frequency, using default value");
+    #endif
+
+    root["status"] = "There are no stored frequency, using default value";
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+
+    // Use default setting
+    ifreq = FREQUENCY;
+  }
+  if (savedSettingSenderid==1) {
+     for (int i = 12; i < 18; ++i)
+     {
+        char curC = char(EEPROM.read(i)); 
+        sendid += curC;
+     }
+     #ifdef DEBUG
+       Serial.print("Stored sender id: ");
+       Serial.println(sendid);
+     #endif
+      isendid = sendid.toInt();
+       
+  }
+  else {
+    Serial.println("There are no stored senderid, using default value");
+    root["status"] = "There are no stored senderid, using default value";
+    root.printTo((char*)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+    isendid = SENSOR_ID; 
+  }
+
+  Serial.print ("Senderid: ");
+  Serial.println(isendid);
+  Serial.print ("Frequency: ");
+  Serial.println(ifreq);
+  Serial.println(RF69_FSTEP);
+
+  /*
+  root["Frequency"] = freq; 
+  root["Senderid"] = isendid;
+  root.printTo((char*)msg, root.measureLength() + 1);
+  client.publish(mqtt_debug_topic, msg);
+  */
   // Hostname defaults to esp8266-[ChipID]
   ArduinoOTA.setHostname(appname);
     
@@ -196,13 +274,6 @@ void setup() {
   httpServer.begin();
   MDNS.addService("http", "tcp", 80);
 */
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback); // What to do when a Mqtt message arrives
-  //client.subscribe(mqtt_sub_topic_freq);
-  //client.subscribe(mqtt_sub_topic_senderid);
-  if (!client.connected()) {
-      reconnect();
-  }
 
   // Publish some info, first via serial, then Mqtt
   Serial.println(F("Ready"));
@@ -213,9 +284,6 @@ void setup() {
   char buf[60];
   sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
   Serial.println(buf);
-  StaticJsonBuffer<150> jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
-  char msg[150];
   root["status"] = buf;
   root.printTo((char*)msg, root.measureLength() + 1);
   client.publish(mqtt_debug_topic, msg);
@@ -239,12 +307,15 @@ void setup() {
     Serial.println(enc_key[y]);
   }
 */
-  uint32_t iFreq = freq.toInt();
+  //uint32_t iFreq = freq.toInt();
+  /*
   #ifdef DEBUG
     Serial.print("Stored freq: ");
     Serial.println(iFreq);
   #endif
-  if (!initialize(iFreq)) {
+  */
+  ifreq = 868100000;
+  if (!initialize(ifreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
 
@@ -275,10 +346,12 @@ void setup() {
 }
 
 bool initialize(uint32_t frequency) {
-  //Serial.println(frequency);
+  Serial.print("In initialize, frequency = ");
+  Serial.println(frequency);
   frequency = frequency / RF69_FSTEP;
-  //Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
-  //Serial.println(frequency);
+  Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
+  Serial.println(frequency);
+  Serial.println(RF69_FSTEP);
 
   const uint8_t CONFIG[][2] = {
     /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},

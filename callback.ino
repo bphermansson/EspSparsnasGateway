@@ -4,11 +4,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
   JsonObject& root = jsonBuffer.createObject();
   char msg[150];
   
-  //client.publish(mqtt_status_topic, "Got a Mqtt mess.");
-  //Serial.print("Topic: ");
-  //Serial.println(topic);
   // Extract topic
-  Serial.print("Message arrived [");
+  Serial.print("Message arrived: ");
   Serial.println(topic);
 
   // Extract payload
@@ -27,39 +24,55 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
       Serial.println("Frequency change");
 
-      // Write bit that indicates stored settings
-      EEPROM.write(addr, 1);
-      addr = addr + 1;
-      
+/* Settings freq to 868000010 or 868000001 doesnt make a difference
+ *  Setting freq to 868000100 gives 868000128hz.
+ *                  868000110 ->    868000128hz.
+ *  868001000 -> 868001024hz.
+ */
       int charLength=stringPayload.length();
-      for (int i = addr; i < stringPayload.length()+1; ++i)
-      {
-        EEPROM.write(i, stringPayload[i-1]);
-        //Serial.print("Wrote: ");
-        //Serial.println(stringPayload[i-1]);
-
+      if (charLength==6)
+      { 
+        Serial.print("Set frequency to: ");
+        Serial.println(stringPayload);
+        // Write bit that indicates stored settings
+        EEPROM.write(addr, 1); // Indicate stored settings by writing 1 to Eeprom address 0
+        addr = 2;
+        
+        for (int i = addr; i < stringPayload.length()+2; ++i)
+        {
+          EEPROM.write(i, stringPayload[i-2]);
+          Serial.print("Wrote: ");
+          Serial.println(stringPayload[i-2]);
+  
+        }
+        EEPROM.commit();
+  
+        root["status"] = "Frequency changed";
+        root.printTo((char*)msg, root.measureLength() + 1);
+        client.publish(mqtt_debug_topic, msg);
+        
+        delay(10);
+        ESP.restart();
       }
-      EEPROM.commit();
-
-      root["status"] = "Frequency changed";
-      root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_debug_topic, msg);
-      
-      delay(10);
-      ESP.reset();
+      else 
+      {
+        Serial.println("Error in frequency length, use 6 digits like '868.23'");
+      }
 
   }
   if(strcmp(topic, "EspSparsnasGateway/settings/senderid") == 0) {  
       Serial.println("Senderid change");
-      EEPROM.write(addr, 1);
-      addr = addr + 10;
+      addr++; 
+      EEPROM.write(addr, 1);    // Indicate stored settings by writing 1 to Eeprom address 1
+      byte offs = 12;
+      addr = addr + offs;
       Serial.println(addr);
       int charLength=stringPayload.length();
-      for (int i = addr; i < charLength+10; ++i)
+      for (int i = addr; i < charLength+offs; ++i)
       {
-        EEPROM.write(i, stringPayload[i-10]);
+        EEPROM.write(i, stringPayload[i-offs]);
         Serial.print("Wrote: ");
-        Serial.println(stringPayload[i-10]);
+        Serial.println(stringPayload[i-offs]);
       }
       EEPROM.commit();
 
@@ -69,7 +82,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       client.publish(mqtt_debug_topic, msg);
       
       delay(10);
-      ESP.reset();      
+      ESP.restart();      
   }
   if(strcmp(topic, "EspSparsnasGateway/settings/clear") == 0) {  
       Serial.println("Clear settings");
@@ -83,13 +96,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
       client.publish(mqtt_debug_topic, msg);
 
       delay(10);
-      ESP.reset();
+      ESP.restart();
   }
     if(strcmp(topic, "EspSparsnasGateway/settings/reset") == 0) {  
       Serial.println("Reset");
       root["status"] = "Reset";
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_debug_topic, msg);
-      ESP.reset();
+      ESP.restart();
     }
 }
