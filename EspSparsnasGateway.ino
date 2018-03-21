@@ -9,11 +9,11 @@
 // Settings for the Mqtt broker:
 #define MQTT_USERNAME "emonpi"     
 #define MQTT_PASSWORD "emonpimqtt2016"  
-const char* mqtt_server = "192.168.1.79";
+static const char* mqtt_server = "192.168.1.79";
 
 // Wifi settings
-const char* ssid = "NETGEAR83";
-const char* password = "..........";
+static const char* ssid = "NETGEAR83";
+static const char* password = "..........";
 
 // Set this to the value of your energy meter
 #define PULSES_PER_KWH 1000
@@ -25,18 +25,18 @@ const char* password = "..........";
 
 // You dont have to change anything below
 
-char* mqtt_status_topic = "EspSparsnasGateway/values";
-char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+static char* mqtt_status_topic = "EspSparsnasGateway/values";
+static char* mqtt_debug_topic = "EspSparsnasGateway/debug";
 
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
-const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
-const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid"; 
-const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
-const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
+static const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
+static const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid"; 
+static const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
+static const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 #define appname "EspSparsnasGateway"
 
-const char compile_date[] = __DATE__ " " __TIME__;
+static const char compile_date[] = __DATE__ " " __TIME__;
 
 // Sometimes you need to change how files are included:
 // If the code doesnt compile, try to comment the row below and uncomment the next:
@@ -50,6 +50,8 @@ const char compile_date[] = __DATE__ " " __TIME__;
 #include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
+#include "test.h"
+
 ESP8266WebServer server(80);
 
 // Make it possible to read Vcc from code
@@ -99,6 +101,8 @@ static volatile uint8_t _mode;
 static volatile bool inInterrupt = false; // Fake Mutex
 uint8_t enc_key[5];
 uint16_t rssi = 0;
+float watt;
+int battery;
 
 uint16_t readRSSI();
 
@@ -123,18 +127,18 @@ void setup() {
   bool storedValues;
   // Read stored values
   String freq, sendid;
-  uint32_t isendid;
-
+  //uint32_t isendid;
+  int  isendid;
   // Read stored config status. Write this bit when storing settings
   char savedSettings = char(EEPROM.read(0)); 
 
   #ifdef DEBUG
-    Serial.print("Stored data: ");
+    Serial.print(F("Stored data: "));
     Serial.println(savedSettings, DEC);
   #endif
   
   if (savedSettings==1) {
-     Serial.println("There are stored settings");
+     Serial.println(F("There are stored settings"));
      // Read them
      for (int i = 1; i < 10; ++i)
      {
@@ -142,7 +146,7 @@ void setup() {
         freq += curC;
      }
      #ifdef DEBUG
-       Serial.print("Stored frequency: ");
+       Serial.print(F("Stored frequency: "));
        Serial.println(freq);
      #endif
      for (int i = 10; i < 16; ++i)
@@ -151,7 +155,7 @@ void setup() {
         sendid += curC;
      }
      #ifdef DEBUG
-       Serial.print("Stored sender id: ");
+       Serial.print(F("Stored sender id: "));
        Serial.println(sendid);
       #endif
       isendid = sendid.toInt();
@@ -170,10 +174,10 @@ void setup() {
   ArduinoOTA.setHostname(appname);
     
   ArduinoOTA.onStart([]() {
-    Serial.println("Start");
+    Serial.println(F("Start"));
   });
   ArduinoOTA.onEnd([]() {
-    Serial.println("\nEnd");
+    Serial.println(F("\nEnd"));
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
     Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
@@ -188,7 +192,7 @@ void setup() {
   });
   ArduinoOTA.begin();
   #ifdef DEBUG
-    Serial.print("Over The Air programming enabled, port: ");
+    Serial.print(F("Over The Air programming enabled, port: "));
     Serial.println(appname);
   #endif
   // Web firmware update
@@ -243,7 +247,7 @@ void setup() {
 */
   uint32_t iFreq = freq.toInt();
   #ifdef DEBUG
-    Serial.print("Stored freq: ");
+    Serial.print(F("Stored freq: "));
     Serial.println(iFreq);
   #endif
   if (!initialize(iFreq)) {
@@ -369,9 +373,9 @@ bool initialize(uint32_t frequency) {
     char mess[ ] = "RFM69 init done";
     Serial.println(mess);
 
-    StaticJsonBuffer<150> jsonBuffer;
+    StaticJsonBuffer<100> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    char msg[150];
+    char msg[100];
     root["status"] = mess;
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
@@ -464,14 +468,14 @@ void interruptHandler() {
       int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
       uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
-      int battery = TEMPDATA[17]; // Battery level, 0-100.
+      battery = TEMPDATA[17]; // Battery level, 0-100.
 
       // This is how to convert the 'effect' field into Watt:
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.      
       
       // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
-      float watt = power * 24;
+      watt = power * 24;
       int data4 = TEMPDATA[4]^0x0f;
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
       if(data4 == 1){
@@ -613,6 +617,7 @@ void loop() {
 
 void reconnect() {
   // Loop until we're reconnected
+  int tries = 1;
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
@@ -633,11 +638,18 @@ void reconnect() {
       #endif
       
     } else {
+      Serial.print ("Attempt ");
+      Serial.println(tries);     
       Serial.print("Mqtt connection failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
+      tries++;
       // Wait 5 seconds before retrying
       delay(5000);
     }
+    if (tries>=5) {
+      break;
+    }
+   // }
   }
 }

@@ -8,7 +8,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   //Serial.print("Topic: ");
   //Serial.println(topic);
   // Extract topic
-  Serial.print("Message arrived [");
+  Serial.print(F("Message arrived ["));
   Serial.println(topic);
 
   // Extract payload
@@ -17,7 +17,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     stringPayload += (char)payload[i];
   }  
   #ifdef DEBUG
-    Serial.print ("Payload: ");
+    Serial.print (F("Payload: "));
     Serial.println(stringPayload);
   #endif
 
@@ -25,7 +25,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   
   if(strcmp(topic, "EspSparsnasGateway/settings/frequency") == 0) {  
 
-      Serial.println("Frequency change");
+      Serial.println(F("Frequency change"));
 
       // Write bit that indicates stored settings
       EEPROM.write(addr, 1);
