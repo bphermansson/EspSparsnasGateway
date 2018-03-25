@@ -12,10 +12,10 @@ const char html[] PROGMEM = R"=====(
 <div>
   <h3>
   Current power: <span id="power">0</span> W.<br>
-    <!--LED State is : <span id="LEDState">NA</span>-->
   </h3>
 </div>
 <script>
+/*
 function sendData(led) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -27,11 +27,11 @@ function sendData(led) {
   xhttp.open("GET", "setLED?LEDstate="+led, true);
   xhttp.send();
 }
-
+*/
 setInterval(function() {
   // Call a function repetatively with 2 Second interval
   getData();
-}, 2000); //2000mSeconds update rate
+}, 2000); //2000 mSeconds update rate
 
 function getData() {
   var xhttp = new XMLHttpRequest();

@@ -22,11 +22,13 @@ static const char* password = "..........";
 #define SENSOR_ID 643654 
 
 #define DEBUG 1
+//#define RFDEBUG 1  // Debug messages if rf received. Noisy!
+
 
 // You dont have to change anything below
 
-static char* mqtt_status_topic = "EspSparsnasGateway/values";
-static char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+static const char* mqtt_status_topic = "EspSparsnasGateway/values";
+static const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
 
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
 static const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
@@ -46,10 +48,11 @@ static const char compile_date[] = __DATE__ " " __TIME__;
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
+//#include <ESP8266mDNS.h>
+//#include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
+//#include "index.h"
 #include "test.h"
 
 ESP8266WebServer server(80);
@@ -59,6 +62,7 @@ ADC_MODE(ADC_VCC);
 
 // OTA
 #include <ArduinoOTA.h>
+#include <ArduinoJson.h>
 
 // Web firmware update
 /*
@@ -68,7 +72,6 @@ const char* host = "EspSparsnasGateway";
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
 */
-#include <ArduinoJson.h>
 
 // Mqtt
 #include <PubSubClient.h>
@@ -100,9 +103,10 @@ static volatile uint8_t DATALEN;
 static volatile uint8_t _mode;
 static volatile bool inInterrupt = false; // Fake Mutex
 uint8_t enc_key[5];
-uint16_t rssi = 0;
+//uint16_t rssi = 0;
+byte rssi=0;
 float watt;
-int battery;
+byte battery;
 
 uint16_t readRSSI();
 
@@ -373,9 +377,9 @@ bool initialize(uint32_t frequency) {
     char mess[ ] = "RFM69 init done";
     Serial.println(mess);
 
-    StaticJsonBuffer<100> jsonBuffer;
+    StaticJsonBuffer<20> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
-    char msg[100];
+    char msg[20];
     root["status"] = mess;
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
@@ -395,10 +399,10 @@ void interruptHandler() {
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
 
     // Read Rssi
-    char crssi[25];
+    char crssi[5];
     int16_t srssi;
     srssi = readRSSI();
-    dtostrf(srssi, 16, 0, crssi);
+    dtostrf(srssi, 5, 0, crssi);
     
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
@@ -416,7 +420,7 @@ void interruptHandler() {
     uint16_t crc = crc16(TEMPDATA, 18);
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
-    #ifdef DEBUG
+    #ifdef RFDEBUG
        Serial.println(F("Got rf data"));
     #endif
 
@@ -465,7 +469,7 @@ void interruptHandler() {
       */
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
-      int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
+      uint seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
       uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       battery = TEMPDATA[17]; // Battery level, 0-100.
@@ -489,28 +493,30 @@ void interruptHandler() {
       #ifdef DEBUG
         // Print menory usage in debug mode
         int heap = ESP.getFreeHeap(); 
-        Serial.print(F("Memory usage: ")); 
+        Serial.print(F("Heap: ")); 
         Serial.println (heap);
       #endif
         
       // Prepare for output
-      output = "Seq " + String(seq) + ": ";
-      output += String(watt) + " W, total: ";
-      output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
-      output += String(battery) + "%, rssi ";
-      output += String(srssi) + "dBm. Power(raw): ";
+      output = "S: " + String(seq) + ": "; // Sequence
+      output += String(watt) + "W, T: "; // Total
+      output += String(pulse / PULSES_PER_KWH) + "kWh, B: ";
+      output += String(battery) + " R: ";  // R = RSSI
+      output += String(srssi) + " P: ";  // Power(raw)
       output += String(power) + " ";
       output += (crc == packet_crc ? "" : "CRC ERR");
       String err = (crc == packet_crc ? "" : "CRC ERR");
 
-      float vcc = ESP.getVcc();
-      output += "Vcc: " + String(vcc) + "mV";     
+      int vcc = ESP.getVcc();
+      output += "V:" + String(vcc);       
       
       Serial.println(output);
+      //byte olen = output.length();
+      //Serial.println(olen);
 
-      StaticJsonBuffer<150> jsonBuffer;
+      StaticJsonBuffer<40> jsonBuffer;
       JsonObject& root = jsonBuffer.createObject();
-      char msg[150];
+      char msg[40];
         
       if (err=="CRC ERR") {
         Serial.println(err);
@@ -519,16 +525,17 @@ void interruptHandler() {
         #endif
       }
       else {
-        root["seq"] = seq;
-        root["watt"] = float(watt);
-        root["total"] = float(pulse / PULSES_PER_KWH);
-        root["battery"] = battery;
-        root["rssi"] = String(srssi);
-        root["power"] = String(power);
-        root["pulse"] = String(pulse);
+        root["s"] = seq;
+        root["w"] = float(watt);
+        root["t"] = float(pulse / PULSES_PER_KWH);  // total
+        root["b"] = battery;
+        root["r"] = String(srssi);
+        root["po"] = String(power);
+        root["pu"] = String(pulse);
       }
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg); 
+      //Serial.println(msg);
     }
 
     unselect();
