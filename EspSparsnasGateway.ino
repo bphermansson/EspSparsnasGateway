@@ -56,6 +56,10 @@ static const char compile_date[] = __DATE__ " " __TIME__;
 #include "test.h"
 
 ESP8266WebServer server(80);
+//WiFiServer server(80);
+//WiFiClient webclient;
+//String header, currentLine;
+
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -284,8 +288,8 @@ void setup() {
   #endif
 
   // Web server for configuration
-  server.begin();
   server.on("/", handleRoot);
+  server.begin();
   
 }
 
@@ -604,7 +608,13 @@ void loop() {
 
   // Web server
   server.handleClient();
-     
+   //WiFiClient webclient = server.available();
+/*   webclient = server.available();   
+   if (webclient) {
+    Serial.println("webclient");
+     showpage();
+   }
+  */ 
   /*String temp = String(millis());
   char mess[20];
   temp.toCharArray(mess,20);
