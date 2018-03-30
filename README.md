@@ -42,6 +42,23 @@ D7	- Gpio13
 D8	- Gpio15
 ```
 
+### Parts
+You can build your own device using these parts:
+U1 - Nodemcu V3
+https://www.lawicel-shop.se/microkontroller/esp8266-esp32/nodemcu-v3-with-esp-12e-ch340
+
+Part1 - RFM69HCW
+https://www.lawicel-shop.se/rfm69hcw-transceiver-bob
+
+C2 - Kondensator 100nF 
+https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
+
+C1 - Kondensator 1000uF
+https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-6-3v-5-pack
+
+L1 - Drossel 100uH
+https://www.electrokit.com/drossel-100uh.42127
+
 ## Hardware hacks to ensure good RF performance.
 Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
 Keep the wires between the RFM69 module and the NodeMCU as short as possible and DO NOT make them 8 cm long hence that calculates into 1/4 wavelenth of 868 MHz.
