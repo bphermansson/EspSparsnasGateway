@@ -52,14 +52,13 @@ static const char compile_date[] = __DATE__ " " __TIME__;
 //#include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
-//#include "index.h"
-#include "test.h"
+#include "index.h"
+//#include "test.h"
 
 ESP8266WebServer server(80);
 //WiFiServer server(80);
 //WiFiClient webclient;
 //String header, currentLine;
-
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -111,6 +110,7 @@ uint8_t enc_key[5];
 byte rssi=0;
 float watt;
 byte battery;
+uint seq;
 
 uint16_t readRSSI();
 
@@ -289,6 +289,7 @@ void setup() {
 
   // Web server for configuration
   server.on("/", handleRoot);
+  server.on("/handleDataHttp", handleDataHttp);
   server.begin();
   
 }
@@ -473,7 +474,7 @@ void interruptHandler() {
       */
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
-      uint seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
+      seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
       uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       battery = TEMPDATA[17]; // Battery level, 0-100.
