@@ -23,7 +23,7 @@ static const char* password = "..........";
 
 #define DEBUG 1
 //#define RFDEBUG 1  // Debug messages if rf received. Noisy!
-
+//#define usewifimanager 1
 
 // You dont have to change anything below
 
@@ -52,8 +52,13 @@ static const char compile_date[] = __DATE__ " " __TIME__;
 //#include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <ESP8266WebServer.h>
+#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
+#ifdef usewifimanager
+  #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
+#endif
+
+// Web code
 #include "index.h"
-//#include "test.h"
 
 ESP8266WebServer server(80);
 //WiFiServer server(80);
@@ -130,6 +135,17 @@ void setup() {
      Serial.println(ESP.getVcc());
   #endif
 
+// Configuration server with custom parameters
+#ifdef usewifimanager
+  WiFiManager wifiManager;
+  WiFiManagerParameter custom_mqtt_server("server", "mqtt server1", mqtt_server, 30);
+  wifiManager.addParameter(&custom_mqtt_server);
+  //WiFiManagerParameter custom_mqtt_user("", "mqtt server", mqtt_server, 40);
+  wifiManager.resetSettings();  // For testing only
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.autoConnect("EspSparnasGatewayConfig","ikearules");
+#endif
+
   // Enable Eeprom for permanent storage
   EEPROM.begin(512);
   bool storedValues;
@@ -148,7 +164,7 @@ void setup() {
   if (savedSettings==1) {
      Serial.println(F("There are stored settings"));
      // Read them
-     for (int i = 1; i < 10; ++i)
+     for (int i = 1; i < 7; ++i)
      {
         char curC = char(EEPROM.read(i)); 
         freq += curC;
@@ -203,6 +219,7 @@ void setup() {
     Serial.print(F("Over The Air programming enabled, port: "));
     Serial.println(appname);
   #endif
+  
   // Web firmware update
 /*
   MDNS.begin(host);
@@ -210,6 +227,8 @@ void setup() {
   httpServer.begin();
   MDNS.addService("http", "tcp", 80);
 */
+
+// Mqtt
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback); // What to do when a Mqtt message arrives
   //client.subscribe(mqtt_sub_topic_freq);
@@ -218,11 +237,10 @@ void setup() {
       reconnect();
   }
 
-  // Publish some info, first via serial, then Mqtt
+// Publish some info, first via serial, then Mqtt
   Serial.println(F("Ready"));
   Serial.print(F("IP address: "));
   Serial.println(WiFi.localIP());
-
   IPAddress ip = WiFi.localIP();
   char buf[60];
   sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
@@ -253,7 +271,7 @@ void setup() {
     Serial.println(enc_key[y]);
   }
 */
-  uint32_t iFreq = freq.toInt();
+  uint32_t iFreq = freq.toInt()*1000000;
   #ifdef DEBUG
     Serial.print(F("Stored freq: "));
     Serial.println(iFreq);
