@@ -13,7 +13,7 @@ const char* mqtt_server = "192.168.1.79";
 
 // Wifi settings
 const char* ssid = "NETGEAR83";
-const char* password = "..........";
+const char* password = "";
 
 // Set this to the value of your energy meter
 #define PULSES_PER_KWH 1000
@@ -23,6 +23,7 @@ const char* password = "..........";
 #define SENSOR_ID 643654 
 
 #define DEBUG 1
+//#define RFDEBUG 1
 
 // You dont have to change anything below
 
@@ -103,10 +104,12 @@ void setup() {
   Serial.println(compile_date);
   #ifdef DEBUG
      Serial.println(F("Debug on"));
-     Serial.print (F("Vcc="));
-     Serial.println(ESP.getVcc());
+     Serial.print("Connecting to: ");
+     Serial.print(ssid);
+     Serial.print(" with password ");
+     Serial.println (password);
   #endif
-
+  delay(500);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -173,13 +176,6 @@ void setup() {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
 
-    StaticJsonBuffer<150> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    char msg[150];
-    root["status"] = mess;
-    root.printTo((char*)msg, root.measureLength() + 1);
-    client.publish(mqtt_debug_topic, msg);
-
     while (1) {
       yield();
     }
@@ -187,6 +183,16 @@ void setup() {
   else {
     #ifdef DEBUG
        Serial.println(F("Radio initialized."));
+       Serial.print (F("Vcc="));
+       Serial.println(ESP.getVcc());
+           
+        StaticJsonBuffer<150> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        char msg[150];
+        root["status"] = "Radio initialized";
+        root["Vcc"] = String(ESP.getVcc());
+        root.printTo((char*)msg, root.measureLength() + 1);
+        client.publish(mqtt_debug_topic, msg);
     #endif
   }
   #ifdef DEBUG
@@ -231,7 +237,7 @@ void interruptHandler() {
     uint16_t crc = crc16(TEMPDATA, 18);
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
-    #ifdef DEBUG
+    #ifdef RFDEBUG
        Serial.println(F("Got rf data"));
     #endif
 
@@ -364,9 +370,9 @@ void loop() {
   }
   
   client.loop();
-  /*
+  
   if (receiveDone()) {
-    // We never gets here!
+    // We never gets here! But do we need it anyway?
     lastRecievedData = millis();
     // Send data to Mqtt server
     Serial.println(F("We got data to send."));
@@ -374,6 +380,6 @@ void loop() {
     // Wait a bit
     delay(500);
   }
-  */
+  
 }
 
