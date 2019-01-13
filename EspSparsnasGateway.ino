@@ -234,6 +234,7 @@ void setup() {
   Serial.println(isendid);
   Serial.print ("Frequency: ");
   Serial.println(ifreq);
+  Serial.print ("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
   /*
@@ -351,6 +352,7 @@ bool initialize(uint32_t frequency) {
   frequency = frequency / RF69_FSTEP;
   Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
   Serial.println(frequency);
+  Serial.print("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
   const uint8_t CONFIG[][2] = {
