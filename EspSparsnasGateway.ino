@@ -199,10 +199,10 @@ void setup() {
   }
   else {
     #ifdef DEBUG
-     Serial.println("There are no stored frequency, using default value");
+     Serial.println("There is no stored frequency, using default value");
     #endif
 
-    root["status"] = "There are no stored frequency, using default value";
+    root["status"] = "There is no stored frequency, using default value";
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
 
@@ -223,8 +223,8 @@ void setup() {
        
   }
   else {
-    Serial.println("There are no stored senderid, using default value");
-    root["status"] = "There are no stored senderid, using default value";
+    Serial.println("There is no stored senderid, using default value");
+    root["status"] = "There is no stored senderid, using default value";
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
     isendid = SENSOR_ID; 
