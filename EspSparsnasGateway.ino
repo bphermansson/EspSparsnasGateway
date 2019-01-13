@@ -541,7 +541,7 @@ void interruptHandler() {
       int data4 = TEMPDATA[4]^0x0f;
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
       if(data4 == 1){
-           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+           watt = (float)((3600000.0f / PULSES_PER_KWH) * 1024) / (power);
       } else if (data4 == 0) { // special mode for low power usage
            watt = power * 0.24 / PULSES_PER_KWH;
       }
