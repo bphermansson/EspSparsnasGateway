@@ -26,8 +26,8 @@ const char* password = "..........";
 
 // You dont have to change anything below
 
-char* mqtt_status_topic = "EspSparsnasGateway/values";
-char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+const char* mqtt_status_topic = "EspSparsnasGateway/values";
+const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
 
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
 const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
