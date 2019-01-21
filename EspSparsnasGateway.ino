@@ -314,7 +314,7 @@ void setup() {
     Serial.println(iFreq);
   #endif
   */
-  ifreq = 868100000;
+//  ifreq = 868100000; Closed, see ticket 28
   if (!initialize(ifreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
