@@ -372,10 +372,6 @@ bool initialize(uint32_t frequency) {
   Serial.print("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
-// If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
-// ishighpowermodule flag set like this:
-rf69.setTxPower(20, true); // range from 14-20 for power, 2nd arg must be true for 69HCW
-
   const uint8_t CONFIG[][2] = {
     /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
     /* 0x02 */ {REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_01},
