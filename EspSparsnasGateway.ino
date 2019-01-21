@@ -26,8 +26,8 @@ const char* password = "..........";
 
 // You dont have to change anything below
 
-char* mqtt_status_topic = "EspSparsnasGateway/values";
-char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+const char* mqtt_status_topic = "EspSparsnasGateway/values";
+const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
 
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
 const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
@@ -199,10 +199,10 @@ void setup() {
   }
   else {
     #ifdef DEBUG
-     Serial.println("There are no stored frequency, using default value");
+     Serial.println("There is no stored frequency, using default value");
     #endif
 
-    root["status"] = "There are no stored frequency, using default value";
+    root["status"] = "There is no stored frequency, using default value";
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
 
@@ -223,8 +223,8 @@ void setup() {
        
   }
   else {
-    Serial.println("There are no stored senderid, using default value");
-    root["status"] = "There are no stored senderid, using default value";
+    Serial.println("There is no stored senderid, using default value");
+    root["status"] = "There is no stored senderid, using default value";
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
     isendid = SENSOR_ID; 
@@ -234,6 +234,7 @@ void setup() {
   Serial.println(isendid);
   Serial.print ("Frequency: ");
   Serial.println(ifreq);
+  Serial.print ("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
   /*
@@ -314,7 +315,7 @@ void setup() {
     Serial.println(iFreq);
   #endif
   */
-  ifreq = 868100000;
+//  ifreq = 868100000; Closed, see ticket 28
   if (!initialize(ifreq)) {
     char mess[ ] = "Unable to initialize the radio. Exiting.";
     Serial.println(mess);
@@ -351,6 +352,7 @@ bool initialize(uint32_t frequency) {
   frequency = frequency / RF69_FSTEP;
   Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
   Serial.println(frequency);
+  Serial.print("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
   const uint8_t CONFIG[][2] = {
@@ -396,12 +398,19 @@ bool initialize(uint32_t frequency) {
     writeReg(REG_SYNCVALUE1, 0xAA);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
+  if (readReg(REG_SYNCVALUE1) != 0xaa) {
+    Serial.println("ERROR: Failed setting syncvalue1 1st time");
+    return false;
+  }
   start = millis();
   do {
     writeReg(REG_SYNCVALUE1, 0x55);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
-
+  if (readReg(REG_SYNCVALUE1) != 0x55) {
+    Serial.println("ERROR: Failed setting syncvalue1 2nd time");
+    return false;
+  }
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++) {
     writeReg(CONFIG[i][0], CONFIG[i][1]);
     yield();
@@ -541,7 +550,7 @@ void interruptHandler() {
       int data4 = TEMPDATA[4]^0x0f;
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
       if(data4 == 1){
-           watt = (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
+           watt = (float)((3600000.0f / PULSES_PER_KWH) * 1024) / (power);
       } else if (data4 == 0) { // special mode for low power usage
            watt = power * 0.24 / PULSES_PER_KWH;
       }
