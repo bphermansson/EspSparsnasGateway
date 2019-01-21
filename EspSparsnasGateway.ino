@@ -398,12 +398,19 @@ bool initialize(uint32_t frequency) {
     writeReg(REG_SYNCVALUE1, 0xAA);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
+  if (readReg(REG_SYNCVALUE1) != 0xaa) {
+    Serial.println("ERROR: Failed setting syncvalue1 1st time");
+    return false;
+  }
   start = millis();
   do {
     writeReg(REG_SYNCVALUE1, 0x55);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
-
+  if (readReg(REG_SYNCVALUE1) != 0x55) {
+    Serial.println("ERROR: Failed setting syncvalue1 2nd time");
+    return false;
+  }
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++) {
     writeReg(CONFIG[i][0], CONFIG[i][1]);
     yield();
