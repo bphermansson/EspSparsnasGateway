@@ -6,6 +6,25 @@
   * 
  */
 
+// Sometimes you need to change how files are included:
+// If the code doesnt compile, try to comment the row below and uncomment the next:
+#include <RFM69registers.h>
+//#include "RFM69registers.h"
+
+#include <Arduino.h>
+#include <SPI.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <EEPROM.h>
+#include <stdint.h>
+// OTA
+#include <ArduinoOTA.h>
+// MQTT
+#include <PubSubClient.h>
+// WEb firmware update
+#include <ArduinoJson.h>
+
 // Settings for the Mqtt broker:
 #define MQTT_USERNAME "emonpi"     
 #define MQTT_PASSWORD "emonpimqtt2016"  
@@ -39,23 +58,11 @@ const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 const char compile_date[] = __DATE__ " " __TIME__;
 
-// Sometimes you need to change how files are included:
-// If the code doesnt compile, try to comment the row below and uncomment the next:
-#include <RFM69registers.h>
-//#include "RFM69registers.h"
-
-#include <Arduino.h>
-#include <SPI.h>
-#include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <EEPROM.h>
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 
-// OTA
-#include <ArduinoOTA.h>
+
 
 // Web firmware update
 /*
@@ -65,10 +72,8 @@ const char* host = "EspSparsnasGateway";
 ESP8266WebServer httpServer(80);
 ESP8266HTTPUpdateServer httpUpdater;
 */
-#include <ArduinoJson.h>
 
 // Mqtt
-#include <PubSubClient.h>
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -77,11 +82,13 @@ PubSubClient client(espClient);
 #define RF69_MODE_SYNTH 2      // PLL ON
 #define RF69_MODE_RX 3    // RX MODE
 #define RF69_MODE_TX 4    // TX MODE
+#define RFM69_RST 5 // "A"
+
 
 uint32_t FXOSC = 32000000;
 uint32_t TwoPowerToNinteen = 524288; // 2^19
 float RF69_FSTEP = (1.0 * FXOSC) / TwoPowerToNinteen; // p13 in datasheet
-uint32_t FREQUENCY = 868000000;
+uint32_t FREQUENCY = 868000000; //Setting the frequency
 uint16_t BITRATE = FXOSC / 40000; // 40kBps
 uint16_t FREQUENCYDEVIATION = 10000 / RF69_FSTEP; // 10kHz
 uint16_t SYNCVALUE = 0xd201;
@@ -119,6 +126,16 @@ void setup() {
      Serial.print (F("Vcc="));
      Serial.println(ESP.getVcc());
   #endif
+  // Hard reset of the RFM69HCW
+  pinMode(RFM69_RST, OUTPUT);
+  digitalWrite(RFM69_RST, LOW);
+  Serial.println("Feather RFM69 RX Test!");
+  Serial.println();
+  // manual reset
+  digitalWrite(RFM69_RST, HIGH);
+  delay(10);
+  digitalWrite(RFM69_RST, LOW);
+  delay(10);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -354,6 +371,10 @@ bool initialize(uint32_t frequency) {
   Serial.println(frequency);
   Serial.print("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
+
+// If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
+// ishighpowermodule flag set like this:
+rf69.setTxPower(20, true); // range from 14-20 for power, 2nd arg must be true for 69HCW
 
   const uint8_t CONFIG[][2] = {
     /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
