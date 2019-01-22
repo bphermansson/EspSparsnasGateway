@@ -25,6 +25,16 @@ The data sent via Mqtt is in Json format and looks like this:
 
 The device uses two Mqtt topics to publish, EspSparsnasGateway/values and EspSparsnasGateway/debug.
 
+## Dependencies
+
+This requires the following packages:
+
+- ArduinoJson (5.x)
+- PubSubClient (2.7)
+- SPIFlash_LowPowerLabs (101.1)
+
+Packages can be installed using the Arduino libs, see the [docs](https://www.arduino.cc/en/guide/libraries) for more info 
+
 
 ## Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire. 
@@ -41,6 +51,8 @@ D6	- Gpio12
 D7	- Gpio13
 D8	- Gpio15
 ```
+
+![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
 
 ### Parts
 You can build your own device using these parts:
