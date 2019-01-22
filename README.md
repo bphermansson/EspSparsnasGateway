@@ -25,6 +25,16 @@ The data sent via Mqtt is in Json format and looks like this:
 
 The device uses two Mqtt topics to publish, EspSparsnasGateway/values and EspSparsnasGateway/debug.
 
+## Dependencies
+
+This requires the following packages:
+
+- ArduinoJson (5.x)
+- PubSubClient (2.7)
+- SPIFlash_LowPowerLabs (101.1)
+
+Packages can be installed using the Arduino libs, see the [docs](https://www.arduino.cc/en/guide/libraries) for more info 
+
 
 ## Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire. 
@@ -42,22 +52,25 @@ D7	- Gpio13
 D8	- Gpio15
 ```
 
+![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
+
+
 ### Parts
-You can build your own device using these parts:
+You can build your own device using these parts: (To see the language specific page make sure to select the language at the top of the page or it will give a 404.)
+
 U1 - Nodemcu V3
 https://www.lawicel-shop.se/microkontroller/esp8266-esp32/nodemcu-v3-with-esp-12e-ch340
 
 Part1 - RFM69HCW
 https://www.lawicel-shop.se/rfm69hcw-transceiver-bob
 
-C2 - Kondensator 100nF 
-https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
+C2 - Kondensator 100nF
+se: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
+en: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-100nf-10-pack
 
 C1 - Kondensator 1000uF
-https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-6-3v-5-pack
-
-L1 - Drossel 100uH
-https://www.electrokit.com/drossel-100uh.42127
+se: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-1000uf-50v
+en: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-50v
 
 ## Hardware hacks to ensure good RF performance.
 Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
