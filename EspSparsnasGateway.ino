@@ -549,10 +549,10 @@ void interruptHandler() {
       float watt = power * 24;
       int data4 = TEMPDATA[4]^0x0f;
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
-      if(data4 == 1){
-           watt = (float)((3600000.0f / PULSES_PER_KWH) * 1024) / (power);
+      if (data4 == 1) {
+           watt = (3600000.0f / float(PULSES_PER_KWH) * 1024.0f) / float(power);
       } else if (data4 == 0) { // special mode for low power usage
-           watt = power * 0.24 / PULSES_PER_KWH;
+           watt = power * 0.24f / float(PULSES_PER_KWH);
       }
       /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
@@ -592,7 +592,7 @@ void interruptHandler() {
       else {
         root["seq"] = seq;
         root["watt"] = float(watt);
-        root["total"] = float(pulse / PULSES_PER_KWH);
+        root["total"] = float(pulse) / float(PULSES_PER_KWH);
         root["battery"] = battery;
         root["rssi"] = String(srssi);
         root["power"] = String(power);
