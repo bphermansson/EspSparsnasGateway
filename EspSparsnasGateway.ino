@@ -15,7 +15,6 @@ const char* mqtt_server = "192.168.1.79";
 const char* ssid = "NETGEAR83";
 const char* password = "..........";
 
-// Set this to the value of your energy meter
 #define PULSES_PER_KWH 1000
 // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
 // Set SENSOR_ID to the last six digits, ie '643654'.
@@ -23,7 +22,6 @@ const char* password = "..........";
 #define SENSOR_ID 643654 
 
 #define DEBUG 1
-
 // You dont have to change anything below
 
 const char* mqtt_status_topic = "EspSparsnasGateway/values";
@@ -132,8 +130,6 @@ void setup() {
   // Setup Mqtt connection
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback); // What to do when a Mqtt message arrives
-  //client.subscribe(mqtt_sub_topic_freq);
-  //client.subscribe(mqtt_sub_topic_senderid);
   if (!client.connected()) {
       reconnect();
   }
@@ -456,9 +452,9 @@ bool initialize(uint32_t frequency) {
 
 
 void interruptHandler() {
-  
+
   if (inInterrupt) {
-    //Serial.println("Already in interruptHandler.");
+    Serial.println("Already in interruptHandler.");
     return;
   }
   inInterrupt = true;
@@ -488,7 +484,7 @@ void interruptHandler() {
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
     #ifdef DEBUG
-       Serial.println(F("Got rf data"));
+       Serial.println("Got rf data");
     #endif
 
     // Decrypt message
@@ -504,6 +500,24 @@ void interruptHandler() {
     // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) { 
     // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
     if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
+      // Serial.print("data_0: ");
+      // Serial.println(TEMPDATA[0]);
+
+      // Serial.print("data_1: ");
+      // Serial.println(TEMPDATA[1]);
+
+      // Serial.print("SENSOR_ID & 0xFF: ");
+      // Serial.println(SENSOR_ID & 0xFF);
+
+      // Serial.print("data_3: ");
+      // Serial.println(TEMPDATA[3]);
+
+      // Serial.print("rcv_sensor_id: ");
+      // Serial.println(rcv_sensor_id);
+
+      // Serial.print("SENSOR_ID: ");
+      // Serial.println(SENSOR_ID);
+
 
       /*
       output = "Bad package: ";
