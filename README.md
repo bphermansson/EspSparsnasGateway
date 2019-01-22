@@ -54,22 +54,23 @@ D8	- Gpio15
 
 ![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
 
+
 ### Parts
-You can build your own device using these parts:
+You can build your own device using these parts: (To see the language specific page make sure to select the language at the top of the page or it will give a 404.)
+
 U1 - Nodemcu V3
 https://www.lawicel-shop.se/microkontroller/esp8266-esp32/nodemcu-v3-with-esp-12e-ch340
 
 Part1 - RFM69HCW
 https://www.lawicel-shop.se/rfm69hcw-transceiver-bob
 
-C2 - Capacitor 100nF 
-https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
+C2 - Kondensator 100nF
+se: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
+en: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-100nf-10-pack
 
-C1 - Capacitor 1000uF
-https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-6-3v-5-pack
-
-L1 - Inductor 100uH
-https://www.electrokit.com/drossel-100uh.42127
+C1 - Kondensator 1000uF
+se: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-1000uf-50v
+en: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-50v
 
 ## Hardware hacks to ensure good RF performance.
 Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
