@@ -5,17 +5,24 @@
   *
   * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
   * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
-  * 
+  *
+  */
+
+/**
+ * MQTT Config
  */
+#define MQTT_USERNAME "emonpi"
+#define MQTT_PASSWORD "emonpimqtt2016"
+#define MQTT_KEEPALIVE 20
+#define MQTT_SOCKET_TIMEOUT 20
+#define MQTT_MAX_PACKET_SIZE 265
+#define MQTT_HOST "0.0.0.0"
 
-// Settings for the Mqtt broker:
-#define MQTT_USERNAME "emonpi"     
-#define MQTT_PASSWORD "emonpimqtt2016"  
-const char* mqtt_server = "192.168.1.79";
-
-// Wifi settings
-const char* ssid = "NETGEAR83";
-const char* password = "..........";
+/**
+ * Wifi Config
+ */
+#define WIFI_SSID "your_ssid"
+#define WIFI_PASSWORD "*********"
 
 /*
  * Sparsnas Config
@@ -112,7 +119,7 @@ void setup()
 #endif
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
 #ifdef DEBUG
@@ -123,8 +130,7 @@ void setup()
   }
   WiFi.hostname(appname);
 
-  // Setup Mqtt connection
-  client.setServer(mqtt_server, 1883);
+  client.setServer(MQTT_HOST, 1883);
   client.setCallback(callback);
   reconnect();
 
@@ -257,7 +263,7 @@ void setup()
 
   IPAddress ip = WiFi.localIP();
   char buf[60];
-  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid);
+  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], WIFI_SSID);
   Serial.println(buf);
   root["status"] = buf;
   root.printTo((char *)msg, root.measureLength() + 1);
