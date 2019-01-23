@@ -654,6 +654,7 @@ void setMode(uint8_t newMode) {
   _mode = newMode;
 }
 
+unsigned long lastClientLoop = millis();
 
 void loop() {
   ArduinoOTA.handle();
@@ -664,8 +665,15 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  
-  client.loop();
+
+  if (millis() - lastClientLoop >= 2500) {
+#ifdef DEBUG
+    Serial.println("client.loop");
+#endif
+    client.loop();
+    lastClientLoop = millis();
+  }
+
   /*String temp = String(millis());
   char mess[20];
   temp.toCharArray(mess,20);
