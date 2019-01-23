@@ -5,7 +5,6 @@
   *
   * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
   * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
-  *
   */
 
 /**
@@ -14,7 +13,7 @@
 #define MQTT_USERNAME "emonpi"
 #define MQTT_PASSWORD "emonpimqtt2016"
 #define MQTT_KEEPALIVE 20
-#define MQTT_SOCKET_TIMEOUT 20
+#define MQTT_SOCKET_TIMEOUT 30
 #define MQTT_MAX_PACKET_SIZE 265
 #define MQTT_HOST "0.0.0.0"
 
@@ -34,6 +33,14 @@
 
 // You dont have to change anything below
 
+#define INTERRUPT_PIN 5
+
+#define RF69_MODE_SLEEP 0   // XTAL OFF
+#define RF69_MODE_STANDBY 1 // XTAL ON
+#define RF69_MODE_SYNTH 2   // PLL ON
+#define RF69_MODE_RX 3      // RX MODE
+#define RF69_MODE_TX 4      // TX MODE
+
 const char *mqtt_status_topic = "EspSparsnasGateway/values";
 const char *mqtt_debug_topic = "EspSparsnasGateway/debug";
 
@@ -42,7 +49,7 @@ const char *mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid";
 const char *mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
 const char *mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
-#define appname "EspSparsnasGateway"
+#define APPNAME "EspSparsnasGateway"
 
 #include <RFM69registers.h>
 #include <Arduino.h>
@@ -52,30 +59,13 @@ const char *mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 #include <WiFiUdp.h>
 #include <EEPROM.h>
 #include <ArduinoOTA.h>
+#include <ArduinoJson.h>
+#include <PubSubClient.h>
 
-// Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 
-// Web firmware update
-/*
-const char* host = "EspSparsnasGateway";
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPUpdateServer.h>
-ESP8266WebServer httpServer(80);
-ESP8266HTTPUpdateServer httpUpdater;
-*/
-#include <ArduinoJson.h>
-
-// Mqtt
-#include <PubSubClient.h>
 WiFiClient espClient;
 PubSubClient client(espClient);
-
-#define RF69_MODE_SLEEP 0   // XTAL OFF
-#define RF69_MODE_STANDBY 1 // XTAL ON
-#define RF69_MODE_SYNTH 2   // PLL ON
-#define RF69_MODE_RX 3      // RX MODE
-#define RF69_MODE_TX 4      // TX MODE
 
 uint32_t FXOSC = 32000000;
 uint32_t TwoPowerToNinteen = 524288;                   // 2^19
@@ -87,7 +77,6 @@ uint16_t SYNCVALUE = 0xd201;
 uint8_t RSSITHRESHOLD = 0xE4;                          // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
 uint8_t PAYLOADLENGTH = 20;
 
-#define _interruptNum 5
 
 static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
@@ -122,12 +111,12 @@ void setup()
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
 #ifdef DEBUG
-    Serial.println("Connection Failed! Rebooting...");
+    Serial.println("WiFi connection Failed! Rebooting...");
 #endif
     delay(5000);
     ESP.restart();
   }
-  WiFi.hostname(appname);
+  WiFi.hostname(APPNAME);
 
   client.setServer(MQTT_HOST, 1883);
   client.setCallback(callback);
@@ -226,7 +215,7 @@ void setup()
   Serial.println(RF69_FSTEP);
 #endif
 
-  ArduinoOTA.setHostname(appname);
+  ArduinoOTA.setHostname(APPNAME);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start");
@@ -253,7 +242,7 @@ void setup()
   ArduinoOTA.begin();
 #ifdef DEBUG
   Serial.print("Over The Air programming enabled, port: ");
-  Serial.println(appname);
+  Serial.println(APPNAME);
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
@@ -261,7 +250,7 @@ void setup()
 
   IPAddress ip = WiFi.localIP();
   char buf[60];
-  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], WIFI_SSID);
+  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", APPNAME, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], WIFI_SSID);
   Serial.println(buf);
   root["status"] = buf;
   root.printTo((char *)msg, root.measureLength() + 1);
@@ -409,7 +398,7 @@ bool initialize(uint32_t frequency)
 #endif
     return false;
   }
-  attachInterrupt(_interruptNum, interruptHandler, RISING);
+  attachInterrupt(INTERRUPT_PIN, interruptHandler, RISING);
 
 #ifdef DEBUG
   char mess[] = "RFM69 init done";
@@ -476,23 +465,23 @@ void interruptHandler()
     if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID)
     {
 #ifdef DEBUG
-      Serial.print("data_0: ");
-      Serial.println(TEMPDATA[0]);
+      // Serial.print("data_0: ");
+      // Serial.println(TEMPDATA[0]);
 
-      Serial.print("data_1: ");
-      Serial.println(TEMPDATA[1]);
+      // Serial.print("data_1: ");
+      // Serial.println(TEMPDATA[1]);
 
-      Serial.print("SENSOR_ID & 0xFF: ");
-      Serial.println(SENSOR_ID & 0xFF);
+      // Serial.print("SENSOR_ID & 0xFF: ");
+      // Serial.println(SENSOR_ID & 0xFF);
 
-      Serial.print("data_3: ");
-      Serial.println(TEMPDATA[3]);
+      // Serial.print("data_3: ");
+      // Serial.println(TEMPDATA[3]);
 
-      Serial.print("rcv_sensor_id: ");
-      Serial.println(rcv_sensor_id);
+      // Serial.print("rcv_sensor_id: ");
+      // Serial.println(rcv_sensor_id);
 
-      Serial.print("SENSOR_ID: ");
-      Serial.println(SENSOR_ID);
+      // Serial.print("SENSOR_ID: ");
+      // Serial.println(SENSOR_ID);
 #endif
     }
     else
@@ -588,14 +577,14 @@ void interruptHandler()
 
 void setMode(uint8_t newMode)
 {
-#ifdef DEBUG
-  Serial.println("In setMode");
-#endif
-
   if (newMode == _mode)
   {
     return;
   }
+#ifdef DEBUG
+  Serial.print("Set mode: ");
+  Serial.println(newMode);
+#endif
 
   uint8_t val = readReg(REG_OPMODE);
   switch (newMode)
@@ -643,7 +632,7 @@ void loop()
   ArduinoOTA.handle();
 
   reconnect();
-  if (millis() - lastClientLoop >= 2500)
+  if (millis() - lastClientLoop >= 5000)
   {
 #ifdef DEBUG
     Serial.println("client.loop");
@@ -671,14 +660,14 @@ bool reconnect()
 #ifdef DEBUG
     Serial.print("Attempting MQTT connection...");
 #endif
-    if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD))
+    if (client.connect(APPNAME, MQTT_USERNAME, MQTT_PASSWORD))
     {
       client.subscribe(mqtt_sub_topic_freq);
       client.subscribe(mqtt_sub_topic_senderid);
       client.subscribe(mqtt_sub_topic_clear);
       client.subscribe(mqtt_sub_topic_reset);
 #ifdef DEBUG
-      String temp = "Connected to Mqtt broker as " + String(appname);
+      String temp = "Connected to Mqtt broker as " + String(APPNAME);
       Serial.println(temp);
       StaticJsonBuffer<150> jsonBuffer;
       JsonObject &root = jsonBuffer.createObject();
