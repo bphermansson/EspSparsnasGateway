@@ -1,4 +1,4 @@
- /**
+/**
   * EspSparsnasGateway
   *
   * https://github.com/bphermansson/EspSparsnasGateway
@@ -23,18 +23,17 @@ const char* password = "..........";
 #define PULSES_PER_KWH 1000
 #define SENSOR_ID 643654
 
-
 #define DEBUG 1
 
 // You dont have to change anything below
 
-const char* mqtt_status_topic = "EspSparsnasGateway/values";
-const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
+const char *mqtt_status_topic = "EspSparsnasGateway/values";
+const char *mqtt_debug_topic = "EspSparsnasGateway/debug";
 
-const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";
-const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid";
-const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
-const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
+const char *mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";
+const char *mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid";
+const char *mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
+const char *mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 #define appname "EspSparsnasGateway"
 
@@ -52,7 +51,6 @@ const char compile_date[] = __DATE__ " " __TIME__;
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 
-
 // Web firmware update
 /*
 const char* host = "EspSparsnasGateway";
@@ -68,20 +66,20 @@ ESP8266HTTPUpdateServer httpUpdater;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-#define RF69_MODE_SLEEP 0      // XTAL OFF
-#define RF69_MODE_STANDBY 1    // XTAL ON
-#define RF69_MODE_SYNTH 2      // PLL ON
-#define RF69_MODE_RX 3         // RX MODE
-#define RF69_MODE_TX 4         // TX MODE
+#define RF69_MODE_SLEEP 0   // XTAL OFF
+#define RF69_MODE_STANDBY 1 // XTAL ON
+#define RF69_MODE_SYNTH 2   // PLL ON
+#define RF69_MODE_RX 3      // RX MODE
+#define RF69_MODE_TX 4      // TX MODE
 
 uint32_t FXOSC = 32000000;
-uint32_t TwoPowerToNinteen = 524288; // 2^19
+uint32_t TwoPowerToNinteen = 524288;                   // 2^19
 float RF69_FSTEP = (1.0f * FXOSC) / TwoPowerToNinteen; // p13 in datasheet
-uint32_t FREQUENCY = 868000000;
-uint16_t BITRATE = FXOSC / 40000; // 40kBps
-uint16_t FREQUENCYDEVIATION = 10000 / RF69_FSTEP; // 10kHz
+uint32_t FREQUENCY = 868000000;                        // default frequency
+uint16_t BITRATE = FXOSC / 40000;                      // 40kBps
+uint16_t FREQUENCYDEVIATION = 10000 / RF69_FSTEP;      // 10kHz
 uint16_t SYNCVALUE = 0xd201;
-uint8_t RSSITHRESHOLD = 0xE4; // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
+uint8_t RSSITHRESHOLD = 0xE4;                          // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
 uint8_t PAYLOADLENGTH = 20;
 
 #define _interruptNum 5
@@ -98,26 +96,28 @@ uint16_t readRSSI();
 
 unsigned long lastRecievedData = millis();
 
-void setup() {
+void setup()
+{
   StaticJsonBuffer<150> jsonBuffer;
-  JsonObject& root = jsonBuffer.createObject();
+  JsonObject &root = jsonBuffer.createObject();
   char msg[150];
   Serial.begin(115200);
   Serial.println("Welcome to EspSparsnasGateway");
   Serial.print("Compiled at:");
   Serial.println(compile_date);
-  #ifdef DEBUG
-     Serial.println("Debug on");
-     Serial.print("Vcc=");
-     Serial.println(ESP.getVcc());
-  #endif
+#ifdef DEBUG
+  Serial.println("Debug on");
+  Serial.print("Vcc=");
+  Serial.println(ESP.getVcc());
+#endif
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    #ifdef DEBUG
-      Serial.println("Connection Failed! Rebooting...");
-    #endif
+  while (WiFi.waitForConnectResult() != WL_CONNECTED)
+  {
+#ifdef DEBUG
+    Serial.println("Connection Failed! Rebooting...");
+#endif
     delay(5000);
     ESP.restart();
   }
@@ -140,83 +140,87 @@ void setup() {
   char savedSettingFreq = char(EEPROM.read(0));
   char savedSettingSenderid = char(EEPROM.read(1));
 
-  #ifdef DEBUG
-    Serial.println("Stored data: ");
-    if (savedSettingFreq == 1) {
-      Serial.println("Found a stored frequency");
-    }
-    if (savedSettingSenderid == 1){
-      Serial.println("Found a stored senderid");
-    }
-  #endif
-
-  if (savedSettingFreq==1) {
-     for (int i = 2; i < 8; ++i)
-     {
-        char curC = char(EEPROM.read(i));
-        freq += curC;
-     }
-
-     #ifdef DEBUG
-       Serial.print("Stored frequency: ");
-       Serial.println(freq);
-     #endif
-     // Adjust to real value 868000000
-     // ifreq is a value like '868.00'
-     freq.trim();
-     String lft = freq.substring(0,3);
-     String rgt = freq.substring(4,6);
-     String tot = lft + rgt;
-
-     ifreq=tot.toInt();
-
-     ifreq=ifreq*10000;
-     #ifdef DEBUG
-      Serial.print("Calculated frequency: ");
-      Serial.println(ifreq);
-     #endif
+#ifdef DEBUG
+  Serial.println("Stored data: ");
+  if (savedSettingFreq == 1)
+  {
+    Serial.println("Found a stored frequency");
   }
-  else {
-    #ifdef DEBUG
-      Serial.println("There is no stored frequency, using default value");
-      root["status"] = "There is no stored frequency, using default value";
-      root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_debug_topic, msg);
-    #endif
+  if (savedSettingSenderid == 1)
+  {
+    Serial.println("Found a stored senderid");
+  }
+#endif
+
+  if (savedSettingFreq == 1)
+  {
+    for (int i = 2; i < 8; ++i)
+    {
+      char curC = char(EEPROM.read(i));
+      freq += curC;
+    }
+
+#ifdef DEBUG
+    Serial.print("Stored frequency: ");
+    Serial.println(freq);
+#endif
+    // Adjust frequency from '868.00' to 868000000
+    freq.trim();
+    String lft = freq.substring(0, 3);
+    String rgt = freq.substring(4, 6);
+    String tot = lft + rgt;
+
+    ifreq = tot.toInt();
+
+    ifreq = ifreq * 10000;
+#ifdef DEBUG
+    Serial.print("Calculated frequency: ");
+    Serial.println(ifreq);
+#endif
+  }
+  else
+  {
+#ifdef DEBUG
+    Serial.println("There is no stored frequency, using default value");
+    root["status"] = "There is no stored frequency, using default value";
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
 
     ifreq = FREQUENCY;
   }
-  if (savedSettingSenderid==1) {
-     for (int i = 12; i < 18; ++i)
-     {
-        char curC = char(EEPROM.read(i));
-        sendid += curC;
-     }
-     #ifdef DEBUG
-       Serial.print("Stored sender id: ");
-       Serial.println(sendid);
-     #endif
-      isendid = sendid.toInt();
-
+  if (savedSettingSenderid == 1)
+  {
+    for (int i = 12; i < 18; ++i)
+    {
+      char curC = char(EEPROM.read(i));
+      sendid += curC;
+    }
+#ifdef DEBUG
+    Serial.print("Stored sender id: ");
+    Serial.println(sendid);
+#endif
+    isendid = sendid.toInt();
   }
-  else {
-    #ifdef DEBUG
-      Serial.println("There is no stored senderid, using default value");
-      root["status"] = "There is no stored senderid, using default value";
-      root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_debug_topic, msg);
-    #endif
+  else
+  {
+#ifdef DEBUG
+    Serial.println("There is no stored senderid, using default value");
+    root["status"] = "There is no stored senderid, using default value";
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
     isendid = SENSOR_ID;
   }
 
-  #ifdef DEBUG
-    Serial.print ("Senderid: ");
-    Serial.println(isendid);
-    Serial.print ("Frequency: ");
-    Serial.println(ifreq);
-    Serial.print ("RF69_FSTEP: ");
-    Serial.println(RF69_FSTEP);
-  #endif
+#ifdef DEBUG
+  Serial.print("Senderid: ");
+  Serial.println(isendid);
+  Serial.print("Frequency: ");
+  Serial.println(ifreq);
+  Serial.print("RF69_FSTEP: ");
+  Serial.println(RF69_FSTEP);
+#endif
 
   ArduinoOTA.setHostname(appname);
 
@@ -231,27 +235,21 @@ void setup() {
   });
   ArduinoOTA.onError([](ota_error_t error) {
     Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
   });
   ArduinoOTA.begin();
 #ifdef DEBUG
-    Serial.print("Over The Air programming enabled, port: ");
-    Serial.println(appname);
-#endif
-  // Web firmware update
-/*
-  MDNS.begin(host);
-  httpUpdater.setup(&httpServer);
-  httpServer.begin();
-  MDNS.addService("http", "tcp", 80);
-*/
-
-  // Publish some info, first via serial, then Mqtt
-#ifdef DEBUG
+  Serial.print("Over The Air programming enabled, port: ");
+  Serial.println(appname);
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
@@ -259,10 +257,10 @@ void setup() {
 
   IPAddress ip = WiFi.localIP();
   char buf[60];
-  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid );
+  sprintf(buf, "%s @ IP:%d.%d.%d.%d SSID: %s", appname, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3], ssid);
   Serial.println(buf);
   root["status"] = buf;
-  root.printTo((char*)msg, root.measureLength() + 1);
+  root.printTo((char *)msg, root.measureLength() + 1);
   client.publish(mqtt_debug_topic, msg);
 
   const uint32_t sensor_id_sub = isendid - 0x5D38E8CB;
@@ -273,72 +271,74 @@ void setup() {
   enc_key[3] = 0x47;
   enc_key[4] = (uint8_t)(sensor_id_sub >> 16);
 
-  if (!initialize(ifreq)) {
-    #ifdef DEBUG
-      char mess[ ] = "Unable to initialize the radio. Exiting.";
-      Serial.println(mess);
+  if (!initialize(ifreq))
+  {
+#ifdef DEBUG
+    char mess[] = "Unable to initialize the radio. Exiting.";
+    Serial.println(mess);
 
-      StaticJsonBuffer<150> jsonBuffer;
-      JsonObject& root = jsonBuffer.createObject();
-      char msg[150];
-      root["status"] = mess;
-      root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_debug_topic, msg);
-    #endif
+    StaticJsonBuffer<150> jsonBuffer;
+    JsonObject &root = jsonBuffer.createObject();
+    char msg[150];
+    root["status"] = mess;
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
 
-    while (1) {
+    while (1)
+    {
       yield();
     }
   }
-  #ifdef DEBUG
-    Serial.println("Radio initialized.");
-    String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
-    Serial.println(temp);
+#ifdef DEBUG
+  Serial.println("Radio initialized.");
+  String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
+  Serial.println(temp);
 
-    root["status"] = temp;
-    root.printTo((char*)msg, root.measureLength() + 1);
-    client.publish(mqtt_debug_topic, msg);
-  #endif
+  root["status"] = temp;
+  root.printTo((char *)msg, root.measureLength() + 1);
+  client.publish(mqtt_debug_topic, msg);
+#endif
 }
 
-bool initialize(uint32_t frequency) {
+bool initialize(uint32_t frequency)
+{
   frequency = frequency / RF69_FSTEP;
-  #ifdef DEBUG
-    Serial.print("In initialize, frequency = ");
-    Serial.println(frequency * RF69_FSTEP);
-    Serial.print("RF69_FSTEP: ");
-    Serial.println(RF69_FSTEP);
-    Serial.print("Adjusted freq: ");
-    Serial.println(frequency);
-  #endif
+#ifdef DEBUG
+  Serial.print("In initialize, frequency = ");
+  Serial.println(frequency * RF69_FSTEP);
+  Serial.print("RF69_FSTEP: ");
+  Serial.println(RF69_FSTEP);
+  Serial.print("Adjusted freq: ");
+  Serial.println(frequency);
+#endif
 
   const uint8_t CONFIG[][2] = {
-    /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
-    /* 0x02 */ {REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_01},
-    /* 0x03 */ {REG_BITRATEMSB, (uint8_t)(BITRATE >> 8)},
-    /* 0x04 */ {REG_BITRATELSB, (uint8_t)(BITRATE)},
-    /* 0x05 */ {REG_FDEVMSB, (uint8_t)(FREQUENCYDEVIATION >> 8)},
-    /* 0x06 */ {REG_FDEVLSB, (uint8_t)(FREQUENCYDEVIATION)},
-    /* 0x07 */ {REG_FRFMSB, (uint8_t)(frequency >> 16)},
-    /* 0x08 */ {REG_FRFMID, (uint8_t)(frequency >> 8)},
-    /* 0x09 */ {REG_FRFLSB, (uint8_t)(frequency)},
-    /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_4}, // p26 in datasheet, filters out noise
-    /* 0x25 */ {REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01},              // PayloadReady
-    /* 0x26 */ {REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF},          // DIO5 ClkOut disable for power saving
-    /* 0x28 */ {REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN},              // writing to this bit ensures that the FIFO & status flags are reset
-    /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},
-    /* 0x2B */ {REG_RXTIMEOUT2, (uint8_t)0x00}, // RegRxTimeout2 (0x2B) interrupt is generated TimeoutRssiThresh *16*T bit after Rssi interrupt if PayloadReady interrupt doesn’t occur.
-    /* 0x2D */ {REG_PREAMBLELSB, 3}, // default 3 preamble bytes 0xAAAAAA
-    /* 0x2E */ {REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0},
-    /* 0x2F */ {REG_SYNCVALUE1, (uint8_t)(SYNCVALUE >> 8)},
-    /* 0x30 */ {REG_SYNCVALUE2, (uint8_t)(SYNCVALUE)},
-    /* 0x37 */ {REG_PACKETCONFIG1, RF_PACKET1_FORMAT_FIXED | RF_PACKET1_DCFREE_OFF | RF_PACKET1_CRC_OFF | RF_PACKET1_CRCAUTOCLEAR_ON | RF_PACKET1_ADRSFILTERING_OFF},
-    /* 0x38 */ {REG_PAYLOADLENGTH, PAYLOADLENGTH},
-    /* 0x3C */ {REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY | RF_FIFOTHRESH_VALUE},               // TX on FIFO not empty
-    /* 0x3D */ {REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF}, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
-    /* 0x6F */ {REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0}, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
-    {255, 0}
-  };
+      /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
+      /* 0x02 */ {REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_01},
+      /* 0x03 */ {REG_BITRATEMSB, (uint8_t)(BITRATE >> 8)},
+      /* 0x04 */ {REG_BITRATELSB, (uint8_t)(BITRATE)},
+      /* 0x05 */ {REG_FDEVMSB, (uint8_t)(FREQUENCYDEVIATION >> 8)},
+      /* 0x06 */ {REG_FDEVLSB, (uint8_t)(FREQUENCYDEVIATION)},
+      /* 0x07 */ {REG_FRFMSB, (uint8_t)(frequency >> 16)},
+      /* 0x08 */ {REG_FRFMID, (uint8_t)(frequency >> 8)},
+      /* 0x09 */ {REG_FRFLSB, (uint8_t)(frequency)},
+      /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_4}, // p26 in datasheet, filters out noise
+      /* 0x25 */ {REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01},                         // PayloadReady
+      /* 0x26 */ {REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF},                      // DIO5 ClkOut disable for power saving
+      /* 0x28 */ {REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN},                         // writing to this bit ensures that the FIFO & status flags are reset
+      /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},
+      /* 0x2B */ {REG_RXTIMEOUT2, (uint8_t)0x00}, // RegRxTimeout2 (0x2B) interrupt is generated TimeoutRssiThresh *16*T bit after Rssi interrupt if PayloadReady interrupt doesn’t occur.
+      /* 0x2D */ {REG_PREAMBLELSB, 3},            // default 3 preamble bytes 0xAAAAAA
+      /* 0x2E */ {REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0},
+      /* 0x2F */ {REG_SYNCVALUE1, (uint8_t)(SYNCVALUE >> 8)},
+      /* 0x30 */ {REG_SYNCVALUE2, (uint8_t)(SYNCVALUE)},
+      /* 0x37 */ {REG_PACKETCONFIG1, RF_PACKET1_FORMAT_FIXED | RF_PACKET1_DCFREE_OFF | RF_PACKET1_CRC_OFF | RF_PACKET1_CRCAUTOCLEAR_ON | RF_PACKET1_ADRSFILTERING_OFF},
+      /* 0x38 */ {REG_PAYLOADLENGTH, PAYLOADLENGTH},
+      /* 0x3C */ {REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY | RF_FIFOTHRESH_VALUE},                              // TX on FIFO not empty
+      /* 0x3D */ {REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF}, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
+      /* 0x6F */ {REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0},                                                               // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
+      {255, 0}};
 
   digitalWrite(SS, HIGH);
   pinMode(SS, OUTPUT);
@@ -351,79 +351,90 @@ bool initialize(uint32_t frequency) {
 
   unsigned long start = millis();
   uint8_t timeout = 50;
-  do {
+  do
+  {
     writeReg(REG_SYNCVALUE1, 0xAA);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
-  if (readReg(REG_SYNCVALUE1) != 0xaa) {
-    #ifdef DEBUG
-      Serial.println("ERROR: Failed setting syncvalue1 1st time");
-    #endif
+  if (readReg(REG_SYNCVALUE1) != 0xaa)
+  {
+#ifdef DEBUG
+    Serial.println("ERROR: Failed setting syncvalue1 1st time");
+#endif
     return false;
   }
   start = millis();
-  do {
+  do
+  {
     writeReg(REG_SYNCVALUE1, 0x55);
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
-  if (readReg(REG_SYNCVALUE1) != 0x55) {
-    #ifdef DEBUG
-      Serial.println("ERROR: Failed setting syncvalue1 2nd time");
-    #endif
+
+  if (readReg(REG_SYNCVALUE1) != 0x55)
+  {
+#ifdef DEBUG
+    Serial.println("ERROR: Failed setting syncvalue1 2nd time");
+#endif
     return false;
   }
-  for (uint8_t i = 0; CONFIG[i][0] != 255; i++) {
+
+  for (uint8_t i = 0; CONFIG[i][0] != 255; i++)
+  {
     writeReg(CONFIG[i][0], CONFIG[i][1]);
     yield();
   }
 
   setMode(RF69_MODE_STANDBY);
   start = millis();
-  while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis() - start < timeout) {
+  while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis() - start < timeout)
+  {
     delay(1);
   }
-  if (millis() - start >= timeout) {
-    #ifdef DEBUG
-      char mess[ ] = "Failed on waiting for ModeReady()";
-      Serial.println(mess);
 
-      StaticJsonBuffer<150> jsonBuffer;
-      JsonObject& root = jsonBuffer.createObject();
-      char msg[150];
-      root["status"] = mess;
-      root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_debug_topic, msg);
-    #endif
+  if (millis() - start >= timeout)
+  {
+#ifdef DEBUG
+    char mess[] = "Failed on waiting for ModeReady()";
+    Serial.println(mess);
+
+    StaticJsonBuffer<150> jsonBuffer;
+    JsonObject &root = jsonBuffer.createObject();
+    char msg[150];
+    root["status"] = mess;
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
     return false;
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
 
-  #ifdef DEBUG
-    char mess[ ] = "RFM69 init done";
-    Serial.println(mess);
+#ifdef DEBUG
+  char mess[] = "RFM69 init done";
+  Serial.println(mess);
 
-    StaticJsonBuffer<150> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    char msg[150];
-    root["status"] = mess;
-    root.printTo((char*)msg, root.measureLength() + 1);
-    client.publish(mqtt_debug_topic, msg);
-  #endif
+  StaticJsonBuffer<150> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  char msg[150];
+  root["status"] = mess;
+  root.printTo((char *)msg, root.measureLength() + 1);
+  client.publish(mqtt_debug_topic, msg);
+#endif
   return true;
 }
 
-
-void interruptHandler() {
-
-  if (inInterrupt) {
-    #ifdef DEBUG
-      Serial.println("Already in interruptHandler.");
-    #endif
+void interruptHandler()
+{
+  if (inInterrupt)
+  {
+#ifdef DEBUG
+    Serial.println("Already in interruptHandler.");
+#endif
     return;
   }
   inInterrupt = true;
 
-  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
+  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
+  {
     char crssi[25];
     int16_t srssi;
     srssi = readRSSI();
@@ -436,7 +447,8 @@ void interruptHandler() {
     // Init reading
     SPI.transfer(REG_FIFO & 0x7F);
 
-    for (uint8_t i = 0; i < 20; i++) {
+    for (uint8_t i = 0; i < 20; i++)
+    {
       TEMPDATA[i] = SPI.transfer(0);
     }
 
@@ -444,12 +456,13 @@ void interruptHandler() {
     uint16_t crc = crc16(TEMPDATA, 18);
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
-    #ifdef DEBUG
-      Serial.println("Got rf data");
-    #endif
+#ifdef DEBUG
+    Serial.println("Got rf data");
+#endif
 
     // Decrypt message
-    for (size_t i = 0; i < 13; i++) {
+    for (size_t i = 0; i < 13; i++)
+    {
       TEMPDATA[5 + i] = TEMPDATA[5 + i] ^ enc_key[i % 5];
     }
 
@@ -457,8 +470,9 @@ void interruptHandler() {
 
     String output;
 
-    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
-    #ifdef DEBUG
+    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID)
+    {
+#ifdef DEBUG
       Serial.print("data_0: ");
       Serial.println(TEMPDATA[0]);
 
@@ -476,8 +490,10 @@ void interruptHandler() {
 
       Serial.print("SENSOR_ID: ");
       Serial.println(SENSOR_ID);
-    #endif
-    } else {
+#endif
+    }
+    else
+    {
       /*
         0: uint8_t length;        // Always 0x11
         1: uint8_t sender_id_lo;  // Lowest byte of sender ID
@@ -492,30 +508,33 @@ void interruptHandler() {
       */
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
-      int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
-      uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
+      int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);                                              // Time in units of 15 seconds.
+      uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]);                                          // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
-      int battery = TEMPDATA[17]; // Battery level, 0-100.
+      int battery = TEMPDATA[17];                                                               // Battery level, 0-100.
 
       // Effect to watt conversion
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
 
       float watt = power * 24;
-      int data4 = TEMPDATA[4]^0x0f;
+      int data4 = TEMPDATA[4] ^ 0x0f;
       //  Note that data_[4] cycles between 0-3 when you first put in the batterys in t$
-      if (data4 == 1) {
+      if (data4 == 1)
+      {
         watt = (3600000.0f / float(PULSES_PER_KWH) * 1024.0f) / float(power);
-      } else if (data4 == 0) { // special mode for low power usage
+      }
+      else if (data4 == 0)
+      { // special mode for low power usage
         watt = power * 0.24f / float(PULSES_PER_KWH);
       }
-      /* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+/* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
       */
-      #ifdef DEBUG
-        int heap = ESP.getFreeHeap();
-        Serial.print(F("Memory usage: "));
-        Serial.println (heap);
-      #endif
+#ifdef DEBUG
+      int heap = ESP.getFreeHeap();
+      Serial.print(F("Memory usage: "));
+      Serial.println(heap);
+#endif
 
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
@@ -532,16 +551,18 @@ void interruptHandler() {
       Serial.println(output);
 
       StaticJsonBuffer<150> jsonBuffer;
-      JsonObject& root = jsonBuffer.createObject();
+      JsonObject &root = jsonBuffer.createObject();
       char msg[150];
 
-      if (err=="CRC ERR") {
+      if (err == "CRC ERR")
+      {
         Serial.println(err);
-        #ifdef DEBUG
-          root["error"] = "CRC Error";
-        #endif
+#ifdef DEBUG
+        root["error"] = "CRC Error";
+#endif
       }
-      else {
+      else
+      {
         root["seq"] = seq;
         root["watt"] = float(watt);
         root["total"] = float(pulse) / float(PULSES_PER_KWH);
@@ -550,7 +571,7 @@ void interruptHandler() {
         root["power"] = String(power);
         root["pulse"] = String(pulse);
       }
-      root.printTo((char*)msg, root.measureLength() + 1);
+      root.printTo((char *)msg, root.measureLength() + 1);
       client.publish(mqtt_status_topic, msg);
     }
 
@@ -561,99 +582,105 @@ void interruptHandler() {
   inInterrupt = false;
 }
 
-void setMode(uint8_t newMode) {
-  #ifdef DEBUG
-     Serial.println("In setMode");
-  #endif
+void setMode(uint8_t newMode)
+{
+#ifdef DEBUG
+  Serial.println("In setMode");
+#endif
 
-  if (newMode == _mode) {
+  if (newMode == _mode)
+  {
     return;
   }
 
   uint8_t val = readReg(REG_OPMODE);
-  switch (newMode) {
-    case RF69_MODE_TX:
-      writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_TRANSMITTER);
-      break;
-    case RF69_MODE_RX:
-      writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_RECEIVER);
-      break;
-    case RF69_MODE_SYNTH:
-      writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_SYNTHESIZER);
-      break;
-    case RF69_MODE_STANDBY:
-      writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_STANDBY);
-      break;
-    case RF69_MODE_SLEEP:
-      writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_SLEEP);
-      break;
-    default:
-      return;
+  switch (newMode)
+  {
+  case RF69_MODE_TX:
+    writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_TRANSMITTER);
+    break;
+  case RF69_MODE_RX:
+    writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_RECEIVER);
+    break;
+  case RF69_MODE_SYNTH:
+    writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_SYNTHESIZER);
+    break;
+  case RF69_MODE_STANDBY:
+    writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_STANDBY);
+    break;
+  case RF69_MODE_SLEEP:
+    writeReg(REG_OPMODE, (val & 0xE3) | RF_OPMODE_SLEEP);
+    break;
+  default:
+    return;
   }
 
   // we are using packet mode, so this check is not really needed but waiting for mode ready is necessary when
   // going from sleep because the FIFO may not be immediately available from previous mode.
   unsigned long start = millis();
   uint16_t timeout = 500;
-  while (_mode == RF69_MODE_SLEEP && millis() - start < timeout && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) {
+  while (_mode == RF69_MODE_SLEEP && millis() - start < timeout && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00)
+  {
     // wait for ModeReady
     yield();
   }
-  if (millis() - start >= timeout) {
-      //Timeout when waiting for getting out of sleep
+  if (millis() - start >= timeout)
+  {
+    //Timeout when waiting for getting out of sleep
   }
 
   _mode = newMode;
 }
 
-
-void loop() {
+void loop()
+{
   ArduinoOTA.handle();
-  // Web firmware update
-  //httpServer.handleClient();
 
   reconnect();
 
   client.loop();
-  if (receiveDone()) {
+  if (receiveDone())
+  {
     lastRecievedData = millis();
-    // Send data to Mqtt server
-    #ifdef DEBUG
-      Serial.println("We got data to send.");
-      client.publish(mqtt_debug_topic, "We got data to send.");
-    #endif
+#ifdef DEBUG
+    Serial.println("We got data to send.");
+    client.publish(mqtt_debug_topic, "We got data to send.");
+#endif
 
     delay(500);
   }
 }
 
-bool reconnect() {
-  while (!client.connected()) {
-    #ifdef DEBUG
-      Serial.print("Attempting MQTT connection...");
-    #endif
-    if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
+bool reconnect()
+{
+  while (!client.connected())
+  {
+#ifdef DEBUG
+    Serial.print("Attempting MQTT connection...");
+#endif
+    if (client.connect(appname, MQTT_USERNAME, MQTT_PASSWORD))
+    {
       client.subscribe(mqtt_sub_topic_freq);
       client.subscribe(mqtt_sub_topic_senderid);
       client.subscribe(mqtt_sub_topic_clear);
       client.subscribe(mqtt_sub_topic_reset);
-      #ifdef DEBUG
-        String temp = "Connected to Mqtt broker as " + String(appname);
-        Serial.println(temp);
-        StaticJsonBuffer<150> jsonBuffer;
-        JsonObject& root = jsonBuffer.createObject();
-        char msg[150];
-        root["status"] = temp;
-        root.printTo((char*)msg, root.measureLength() + 1);
-        client.publish(mqtt_debug_topic, msg);
-      #endif
+#ifdef DEBUG
+      String temp = "Connected to Mqtt broker as " + String(appname);
+      Serial.println(temp);
+      StaticJsonBuffer<150> jsonBuffer;
+      JsonObject &root = jsonBuffer.createObject();
+      char msg[150];
+      root["status"] = temp;
+      root.printTo((char *)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+#endif
       return true;
     }
-    #ifdef DEBUG
-      Serial.print("Mqtt connection failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-    #endif
+#ifdef DEBUG
+    Serial.print("Mqtt connection failed, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in 5 seconds");
+#endif
     delay(5000);
   }
   return true;
