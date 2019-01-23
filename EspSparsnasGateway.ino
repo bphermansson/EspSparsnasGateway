@@ -44,8 +44,6 @@ const char *mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
 #define appname "EspSparsnasGateway"
 
-const char compile_date[] = __DATE__ " " __TIME__;
-
 #include <RFM69registers.h>
 #include <Arduino.h>
 #include <SPI.h>
@@ -108,11 +106,12 @@ void setup()
   StaticJsonBuffer<150> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   char msg[150];
+
+#ifdef DEBUG
   Serial.begin(115200);
   Serial.println("Welcome to EspSparsnasGateway");
   Serial.print("Compiled at:");
-  Serial.println(compile_date);
-#ifdef DEBUG
+  Serial.println(__DATE__ " " __TIME__);
   Serial.println("Debug on");
   Serial.print("Vcc=");
   Serial.println(ESP.getVcc());
@@ -134,7 +133,6 @@ void setup()
   client.setCallback(callback);
   reconnect();
 
-  // Enable Eeprom for permanent storage
   EEPROM.begin(512);
   bool storedValues;
   // Read stored values
@@ -383,7 +381,6 @@ bool initialize(uint32_t frequency)
 #endif
     return false;
   }
-
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++)
   {
     writeReg(CONFIG[i][0], CONFIG[i][1]);
@@ -533,12 +530,13 @@ void interruptHandler()
       { // special mode for low power usage
         watt = power * 0.24f / float(PULSES_PER_KWH);
       }
-/* m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
-      'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
-      */
+      /**
+       * m += sprintf(m, "%5d: %7.1f W. %d.%.3d kWh. Batt %d%%. FreqErr: %.2f", seq, watt, pulse/PULSES_PER_KWH, pulse%PULSES_PER_KWH, battery, freq);
+       * 'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
+       */
 #ifdef DEBUG
       int heap = ESP.getFreeHeap();
-      Serial.print(F("Memory usage: "));
+      Serial.print("Memory usage: ");
       Serial.println(heap);
 #endif
 
@@ -638,13 +636,22 @@ void setMode(uint8_t newMode)
   _mode = newMode;
 }
 
+unsigned long lastClientLoop = millis();
+
 void loop()
 {
   ArduinoOTA.handle();
 
   reconnect();
+  if (millis() - lastClientLoop >= 2500)
+  {
+#ifdef DEBUG
+    Serial.println("client.loop");
+#endif
+    client.loop();
+    lastClientLoop = millis();
+  }
 
-  client.loop();
   if (receiveDone())
   {
     lastRecievedData = millis();
