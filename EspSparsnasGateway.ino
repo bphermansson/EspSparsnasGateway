@@ -86,9 +86,261 @@ static volatile bool inInterrupt = false; // Fake Mutex
 uint8_t enc_key[5];
 uint16_t rssi = 0;
 
-uint16_t readRSSI();
-
 unsigned long lastRecievedData = millis();
+unsigned long lastClientLoop = millis();
+
+uint32_t getFrequency()
+{
+  return RF69_FSTEP * (((uint32_t)readReg(REG_FRFMSB) << 16) + ((uint16_t)readReg(REG_FRFMID) << 8) + readReg(REG_FRFLSB));
+}
+
+void avoidDeadlocks()
+{
+  uint8_t val = readReg(REG_PACKETCONFIG2);
+  writeReg(REG_PACKETCONFIG2, (val & 0xFB) | RF_PACKET2_RXRESTART);
+}
+
+void enableRadioTx()
+{
+  setMode(RF69_MODE_RX);
+}
+
+void receiveBegin()
+{
+  DATALEN = 0;
+  if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)
+  {
+    avoidDeadlocks();
+  }
+  enableRadioTx();
+}
+
+uint8_t readReg(uint8_t addr)
+{
+  selectRadio();
+  SPI.transfer(addr & 0x7F);
+  uint8_t regval = SPI.transfer(0);
+  deselectRadio();
+  return regval;
+}
+
+void writeReg(uint8_t addr, uint8_t value)
+{
+  selectRadio();
+  SPI.transfer(addr | 0x80);
+  SPI.transfer(value);
+  deselectRadio();
+}
+
+/**
+ * select the RFM69 transceiver (save SPI settings, set CS low)
+ */
+void selectRadio()
+{
+  digitalWrite(SS, LOW);
+}
+
+/**
+ * unselect the RFM69 transceiver (set CS high, restore SPI settings)
+ */
+void deselectRadio()
+{
+  digitalWrite(SS, HIGH);
+}
+
+/**
+ * get the received signal strength indicator (RSSI)
+ */
+uint16_t readRSSI()
+{
+  return -readReg(REG_RSSIVALUE);
+}
+
+void enableInterrupts()
+{
+  setMode(RF69_MODE_STANDBY);
+}
+
+/**
+ * checks if a packet was received
+ *
+ * puts transceiver in receive (ie RX or listen) mode
+ */
+bool receiveDone()
+{
+  if (_mode == RF69_MODE_RX && DATALEN > 0)
+  {
+    enableInterrupts();
+    return true;
+  }
+  if (_mode == RF69_MODE_RX)
+  {
+    return false;
+  }
+
+  receiveBegin();
+  return false;
+}
+
+uint16_t crc16(volatile uint8_t *data, size_t n)
+{
+#ifdef DEBUG
+  Serial.println("In crc16");
+#endif
+  uint16_t crcReg = 0xffff;
+  size_t i, j;
+  for (j = 0; j < n; j++)
+  {
+    uint8_t crcData = data[j];
+    for (i = 0; i < 8; i++)
+    {
+      if (((crcReg & 0x8000) >> 8) ^ (crcData & 0x80))
+      {
+        crcReg = (crcReg << 1) ^ 0x8005;
+      }
+      else
+      {
+        crcReg = (crcReg << 1);
+      }
+      crcData <<= 1;
+    }
+  }
+  return crcReg;
+}
+
+/**
+ * When a Mqtt message has arrived
+ */
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  StaticJsonBuffer<150> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  char msg[150];
+
+  // Extract topic
+#ifdef DEBUG
+  Serial.print("Message arrived: ");
+  Serial.println(topic);
+#endif
+
+  // Extract payload
+  String stringPayload = "";
+  for (int i = 0; i < length; i++)
+  {
+    stringPayload += (char)payload[i];
+  }
+#ifdef DEBUG
+  Serial.print("Payload: ");
+  Serial.println(stringPayload);
+#endif
+
+  int addr = 0;
+
+  if (strcmp(topic, "EspSparsnasGateway/settings/frequency") == 0)
+  {
+
+#ifdef DEBUG
+    Serial.println("Frequency change");
+#endif
+    int charLength = stringPayload.length();
+    if (charLength != 6)
+    {
+#ifdef DEBUG
+      Serial.print("Set frequency to: ");
+      Serial.println(stringPayload);
+#endif
+      EEPROM.write(addr, 1);
+      addr = 2;
+
+      for (int i = addr; i < stringPayload.length() + 2; ++i)
+      {
+        EEPROM.write(i, stringPayload[i - 2]);
+#ifdef DEBUG
+        Serial.print("Wrote: ");
+        Serial.println(stringPayload[i - 2]);
+#endif
+      }
+      EEPROM.commit();
+
+#ifdef DEBUG
+      root["status"] = "Frequency changed";
+      root.printTo((char *)msg, root.measureLength() + 1);
+      client.publish(mqtt_debug_topic, msg);
+#endif
+
+      delay(10);
+      ESP.restart();
+    }
+    else
+    {
+#ifdef DEBUG
+      Serial.println("Error in frequency length, use 6 digits like '868.23'");
+#endif
+    }
+  }
+  if (strcmp(topic, "EspSparsnasGateway/settings/senderid") == 0)
+  {
+#ifdef DEBUG
+    Serial.println("Senderid change");
+#endif
+    addr++;
+    EEPROM.write(addr, 1); // Indicate stored settings by writing 1 to Eeprom address 1
+    byte offs = 12;
+    addr = addr + offs;
+#ifdef DEBUG
+    Serial.println(addr);
+#endif
+    int charLength = stringPayload.length();
+    for (int i = addr; i < charLength + offs; ++i)
+    {
+      EEPROM.write(i, stringPayload[i - offs]);
+#ifdef DEBUG
+      Serial.print("Wrote: ");
+      Serial.println(stringPayload[i - offs]);
+#endif
+    }
+    EEPROM.commit();
+
+#ifdef DEBUG
+    root["status"] = "Sender id changed";
+    root["NewSenderId"] = stringPayload;
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
+
+    delay(10);
+    ESP.restart();
+  }
+  if (strcmp(topic, "EspSparsnasGateway/settings/clear") == 0)
+  {
+    Serial.println("Clear settings");
+    for (int i = 0; i < 512; i++)
+    {
+      EEPROM.write(i, 0);
+    }
+    EEPROM.commit();
+
+#ifdef DEBUG
+    root["status"] = "Settings cleared";
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
+
+    delay(10);
+    ESP.restart();
+  }
+  if (strcmp(topic, "EspSparsnasGateway/settings/reset") == 0)
+  {
+#ifdef DEBUG
+    Serial.println("Reset");
+    root["status"] = "Reset";
+    root.printTo((char *)msg, root.measureLength() + 1);
+    client.publish(mqtt_debug_topic, msg);
+#endif
+    ESP.restart();
+  }
+}
+
 
 void setup()
 {
@@ -434,7 +686,7 @@ void interruptHandler()
 
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
-    select();
+    selectRadio();
 
     // Init reading
     SPI.transfer(REG_FIFO & 0x7F);
@@ -568,8 +820,8 @@ void interruptHandler()
       client.publish(mqtt_status_topic, msg);
     }
 
-    unselect();
-    setMode(RF69_MODE_RX);
+    deselectRadio();
+    enableRadioTx();
   }
 
   inInterrupt = false;
@@ -624,8 +876,6 @@ void setMode(uint8_t newMode)
 
   _mode = newMode;
 }
-
-unsigned long lastClientLoop = millis();
 
 void loop()
 {
