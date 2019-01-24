@@ -91,12 +91,12 @@ unsigned long lastClientLoop = millis();
 
 uint32_t getFrequency()
 {
-  return RF69_FSTEP * (((uint32_t)readReg(REG_FRFMSB) << 16) + ((uint16_t)readReg(REG_FRFMID) << 8) + readReg(REG_FRFLSB));
+  return RF69_FSTEP * (((uint32_t)readRegistry(REG_FRFMSB) << 16) + ((uint16_t)readRegistry(REG_FRFMID) << 8) + readRegistry(REG_FRFLSB));
 }
 
 void avoidDeadlocks()
 {
-  uint8_t val = readReg(REG_PACKETCONFIG2);
+  uint8_t val = readRegistry(REG_PACKETCONFIG2);
   writeReg(REG_PACKETCONFIG2, (val & 0xFB) | RF_PACKET2_RXRESTART);
 }
 
@@ -108,14 +108,14 @@ void enableRadioTx()
 void receiveBegin()
 {
   DATALEN = 0;
-  if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)
+  if (readRegistry(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)
   {
     avoidDeadlocks();
   }
   enableRadioTx();
 }
 
-uint8_t readReg(uint8_t addr)
+uint8_t readRegistry(uint8_t addr)
 {
   selectRadio();
   SPI.transfer(addr & 0x7F);
@@ -153,7 +153,7 @@ void deselectRadio()
  */
 uint16_t readRSSI()
 {
-  return -readReg(REG_RSSIVALUE);
+  return -readRegistry(REG_RSSIVALUE);
 }
 
 void enableInterrupts()
@@ -600,28 +600,31 @@ bool initialize(uint32_t frequency)
   {
     writeReg(REG_SYNCVALUE1, 0xAA);
     yield();
-  } while (readReg(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
-  if (readReg(REG_SYNCVALUE1) != 0xaa)
+  } while (readRegistry(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
+
+  if (readRegistry(REG_SYNCVALUE1) != 0xaa)
   {
 #ifdef DEBUG
     Serial.println("ERROR: Failed setting syncvalue1 1st time");
 #endif
     return false;
   }
+
   start = millis();
   do
   {
     writeReg(REG_SYNCVALUE1, 0x55);
     yield();
-  } while (readReg(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
+  } while (readRegistry(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
 
-  if (readReg(REG_SYNCVALUE1) != 0x55)
+  if (readRegistry(REG_SYNCVALUE1) != 0x55)
   {
 #ifdef DEBUG
     Serial.println("ERROR: Failed setting syncvalue1 2nd time");
 #endif
     return false;
   }
+
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++)
   {
     writeReg(CONFIG[i][0], CONFIG[i][1]);
@@ -630,7 +633,7 @@ bool initialize(uint32_t frequency)
 
   setMode(RF69_MODE_STANDBY);
   start = millis();
-  while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis() - start < timeout)
+  while (((readRegistry(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis() - start < timeout)
   {
     delay(1);
   }
@@ -677,7 +680,7 @@ void interruptHandler()
   }
   inInterrupt = true;
 
-  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
+  if (_mode == RF69_MODE_RX && (readRegistry(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
   {
     char crssi[25];
     int16_t srssi;
@@ -838,7 +841,7 @@ void setMode(uint8_t newMode)
   Serial.println(newMode);
 #endif
 
-  uint8_t val = readReg(REG_OPMODE);
+  uint8_t val = readRegistry(REG_OPMODE);
   switch (newMode)
   {
   case RF69_MODE_TX:
@@ -864,7 +867,7 @@ void setMode(uint8_t newMode)
   // going from sleep because the FIFO may not be immediately available from previous mode.
   unsigned long start = millis();
   uint16_t timeout = 500;
-  while (_mode == RF69_MODE_SLEEP && millis() - start < timeout && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00)
+  while (_mode == RF69_MODE_SLEEP && millis() - start < timeout && (readRegistry(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00)
   {
     // wait for ModeReady
     yield();
