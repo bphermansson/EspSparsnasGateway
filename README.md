@@ -1,19 +1,19 @@
 # EspSparsnasGateway
 
-This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor 
-sends encoded data by radio to a control panel. This device collects the data 
-and sends it to Mqtt-enabled receivers in Json-format. Thus you need a Mqtt broker 
+This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor
+sends encoded data by radio to a control panel. This device collects the data
+and sends it to Mqtt-enabled receivers in Json-format. Thus you need a Mqtt broker
 in your network and adjust the settings  in the ino-file:
 
 ```
 // Settings for the Mqtt broker:
-#define MQTT_USERNAME "<username>"    // If used by the broker     
+#define MQTT_USERNAME "<username>"    // If used by the broker
 #define MQTT_PASSWORD "<password>"     //    -   *   -
 const char* mqtt_server = "192.168.1.79";  // Mqtt brokers IP
 ```
 
-The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad. 
-This gives a CRC-error, the data is in this case not sent via Mqtt but printed via the serial port. 
+The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad.
+This gives a CRC-error, the data is in this case not sent via Mqtt but printed via the serial port.
 
 The data sent via Mqtt is in Json format and looks like this:
 
@@ -32,14 +32,15 @@ This requires the following packages:
 - ArduinoJson (5.x)
 - PubSubClient (2.7)
 - SPIFlash_LowPowerLabs (101.1)
+- RFM69_LowPowerLabs (1.2.0)
 
-Packages can be installed using the Arduino libs, see the [docs](https://www.arduino.cc/en/guide/libraries) for more info 
+Packages can be installed using the Arduino libs, see the [docs](https://www.arduino.cc/en/guide/libraries) for more info
 
 
 ## Hardware
-The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire. 
+The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire.
 
-The connection for the RFM69 is hardcoded. This is standard Spi connections set in the spi-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon. 
+The connection for the RFM69 is hardcoded. This is standard Spi connections set in the spi-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon.
 
 The schematic shows a Nodemcu, but you can use another ESP8266-based device if you want (except the Esp-01). Use these pin mappings:
 
@@ -80,7 +81,7 @@ You will experiance interference and very poor performance if the above is not a
 If you want to learn more about the Rfm69 and get some tips & tricks, look at https://learn.sparkfun.com/tutorials/rfm69hcw-hookup-guide.
 
 ## If it doesn't work
-As usual, check your connections one more time. If possible, solder the connections. Also make sure to use a good power supply, both the Esp and the Rfm69 want's that. 
+As usual, check your connections one more time. If possible, solder the connections. Also make sure to use a good power supply, both the Esp and the Rfm69 want's that.
 
 ### Connect to computer
 You can use the device with a simple USB power supply and get data via Mqtt. The device also puts out more information via the serial port. You can connect it to a computer and look at the messages with a serial monitor, for example the one in the Arduino IDE or Minicom. The baudrate is 115200.
@@ -106,7 +107,7 @@ You can try to change this to:
 ```
 
 This makes the channel filter wider, 62.5khz instead of 31.3khz.
- 
+
 ## Control device via Mqtt
 You can send messages to the device via Mqtt. There are four topics that can be used:
 
@@ -124,7 +125,7 @@ Examples:
 ... -t 'EspSparsnasGateway/settings/reset' -m ''
 ```
 
-Note that this doesn't work the first time after the code has been uploaded, the Esp has to be reset manually before it can be reset properly via software. This is a known bug in the SDK. 
+Note that this doesn't work the first time after the code has been uploaded, the Esp has to be reset manually before it can be reset properly via software. This is a known bug in the SDK.
 Also note that the frequency can't be set exactly now, don't know why.
 
 ## Home Assistant integration
@@ -138,7 +139,7 @@ In Home Assistant the sensors can look like this:
     name: "House energy usage"
     unit_of_measurement: "W"
     value_template: '{{ float(value_json.power) | round(0)  }}'
-    
+
   - platform: mqtt
     state_topic: "EspSparsnasGateway/values"
     name: "House energy meter batt"
@@ -146,14 +147,14 @@ In Home Assistant the sensors can look like this:
     value_template: '{{ float(value_json.battery) }}'
 ```
 
-We then get these sensors: 
+We then get these sensors:
 
 ```
 -sensor.house_energy_meter_batt
 -sensor.house_energy_usage
 ```
 
-The result can be seen in SparsnasHass.png. 
+The result can be seen in SparsnasHass.png.
 
 ![alt text](https://github.com/bphermansson/EspSparsnasGateway/blob/master/SparsnasHass.png "Sparsnas in Home Assistant")
 
