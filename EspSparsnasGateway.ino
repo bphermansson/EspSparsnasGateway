@@ -13,7 +13,7 @@ const char* mqtt_server = "192.168.1.79";
 
 // Wifi settings
 const char* ssid = "NETGEAR83";
-const char* password = "..........";
+const char* password = "";
 
 // Set this to the value of your energy meter
 #define PULSES_PER_KWH 1000
@@ -89,6 +89,7 @@ uint8_t RSSITHRESHOLD = 0xE4; // must be set to dBm = (-Sensitivity / 2), defaul
 uint8_t PAYLOADLENGTH = 20;
 
 #define _interruptNum 5
+void  ICACHE_RAM_ATTR interruptHandler();
 
 static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
@@ -123,7 +124,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println(F("Connection Failed! Rebooting..."));
+    Serial.println(F("WiFi connection Failed! Rebooting..."));
     delay(5000);
     ESP.restart();
   }
@@ -454,9 +455,7 @@ bool initialize(uint32_t frequency) {
   return true;
 }
 
-
-void interruptHandler() {
-  
+void  ICACHE_RAM_ATTR interruptHandler() {  
   if (inInterrupt) {
     //Serial.println("Already in interruptHandler.");
     return;
@@ -605,7 +604,7 @@ void interruptHandler() {
     unselect();
     setMode(RF69_MODE_RX);
   }
-
+Serial.println("Int done");
   inInterrupt = false;
 }
 
@@ -665,7 +664,7 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-
+/*
   if (millis() - lastClientLoop >= 2500) {
 #ifdef DEBUG
     Serial.println("client.loop");
@@ -673,7 +672,7 @@ void loop() {
     client.loop();
     lastClientLoop = millis();
   }
-
+*/
   /*String temp = String(millis());
   char mess[20];
   temp.toCharArray(mess,20);
