@@ -1,0 +1,13 @@
+// Set this to the value of your energy meter
+#define PULSES_PER_KWH 1000
+// The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
+// Set SENSOR_ID to the last six digits, ie '643654'.
+// You can also set this later via Mqtt settings message, see docs.
+#define SENSOR_ID nnnnnn
+#define DEBUG 1
+#define appname "EspSparsnasGateway"
+#define MYSSID "network"                  // Your SSID/Network name
+#define PASSWORD "pass"                   // Wi-Fi password
+#define MQTT_USERNAME "mqtt_username"     // If you need username/password to connect
+#define MQTT_PASSWORD "mqtt_password"     // to the MQTT-server.
+#define mqtt_server "n.n.n.n"             // For example '192.168.1.90'
