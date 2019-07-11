@@ -25,22 +25,12 @@
  #include "mqttPublish.h"
  #include "connect.h"
  #include "ota.h"
- #include "RFM69functions.h"
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 MQTTClient client;
 WiFiClient espClient;
 
-// Web firmware update
-/* //#include <ArduinoOTA.h>
-
-const char* host = "EspSparsnasGateway";
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPUpdateServer.h>
-ESP8266WebServer httpServer(80);
-ESP8266HTTPUpdateServer httpUpdater;
-*/
 unsigned long lastRecievedData = millis();
 
 // Variables for Mqtt
@@ -91,61 +81,18 @@ void setup() {
   values["mess"] = String(buf);
   serializeJson(values, output);
   client.publish(MQTT_PUB_TOPIC, output);
-  // Setup Mqtt connection
-  //client.setServer(mqtt_server, 1883);
-  //client.setCallback(callback); // What to do when a Mqtt message arrives
-  //client.subscribe(mqtt_sub_topic_freq);
-  //client.subscribe(mqtt_sub_topic_senderid);
-/*
-  if (!client.connected()) {
-      reconnect();
-  }
-*/
-  // Enable Eeprom for permanent storage
-  EEPROM.begin(512);
-  bool storedValues;
-  // Read stored values
+
   String freq, sendid;
   uint32_t ifreq;
-  //uint32_t isendid;
-
-    // Use default setting
-    ifreq = FREQUENCY;
+  ifreq = FREQUENCY;
 
   Serial.print ("Frequency: ");
   Serial.println(ifreq);
   Serial.print ("RF69_FSTEP: ");
   Serial.println(RF69_FSTEP);
 
-  /*
-  root["Frequency"] = freq;
-  root["Senderid"] = isendid;
-  root.printTo((char*)msg, root.measureLength() + 1);
-  client.publish(mqtt_debug_topic, msg);
-  */
-  // Hostname defaults to esp8266-[ChipID]
-  // Web firmware update
-/*
-  MDNS.begin(host);
-  httpUpdater.setup(&httpServer);
-  httpServer.begin();
-  MDNS.addService("http", "tcp", 80);
-*/
 
-  /*
-  root["status"] = buf;
-  root.printTo((char*)msg, root.measureLength() + 1);
-  */
-  //client.publish(mqtt_debug_topic, msg);
-
-  // Calc encryption key, used for bytes 5-17
-  //Serial.println(SENSOR_ID);
-  //Serial.println(isendid);
-
-  //const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
   const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
-  //const uint32_t sensor_id_subtest = isendid - 0x5D38E8CB;
-
   enc_key[0] = (uint8_t)(sensor_id_sub >> 24);
   enc_key[1] = (uint8_t)(sensor_id_sub);
   enc_key[2] = (uint8_t)(sensor_id_sub >> 8);
