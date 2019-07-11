@@ -5,9 +5,11 @@
 // You can also set this later via Mqtt settings message, see docs.
 #define SENSOR_ID 643654
 #define DEBUG 1
-#define APPNAME "EspSparsnasGateway"
-#define MYSSID "NETGEAR83"
-#define PASSWORD ""
+#define APPNAME "EspSparsnasGatewayV2"
+#define WIFI_SSID "NETGEAR83"
+#define WIFI_PASSWORD ""
 #define MQTT_USERNAME "emonpi"
 #define MQTT_PASSWORD "emonpimqtt2016"
-#define mqtt_server "192.168.1.190"
+#define MQTT_SERVER "192.168.1.190"
+#define SERIAL_SPEED 115200
+#define MQTT_PUB_TOPIC "EspSparsnasGatewayV2"

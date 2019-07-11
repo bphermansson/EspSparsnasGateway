@@ -1,0 +1,10 @@
+void setMode(uint8_t newMode);
+uint8_t readReg(uint8_t addr);
+uint16_t crc16(volatile uint8_t *data, size_t n);
+void writeReg(uint8_t addr, uint8_t value);
+void select();
+void unselect();
+uint32_t getFrequency();
+bool receiveDone();
+bool initialize(uint32_t frequency);
+void  ICACHE_RAM_ATTR interruptHandler();

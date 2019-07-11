@@ -1,0 +1,2 @@
+void aotaInit();
+void aotaHandle();
