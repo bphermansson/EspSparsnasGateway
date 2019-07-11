@@ -1,14 +1,14 @@
  /*
   * https://github.com/bphermansson/EspSparsnasGateway
-  * 
+  *
   * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
   * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
-  * 
+  *
  */
 
 // Settings for the Mqtt broker:
-#define MQTT_USERNAME "emonpi"     
-#define MQTT_PASSWORD "emonpimqtt2016"  
+#define MQTT_USERNAME "emonpi"
+#define MQTT_PASSWORD "emonpimqtt2016"
 const char* mqtt_server = "192.168.1.79";
 
 // Wifi settings
@@ -20,7 +20,7 @@ const char* password = "";
 // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
 // Set SENSOR_ID to the last six digits, ie '643654'.
 // You can also set this later via Mqtt settings message, see docs.
-#define SENSOR_ID 643654 
+#define SENSOR_ID 643654
 
 #define DEBUG 1
 
@@ -30,8 +30,8 @@ const char* mqtt_status_topic = "EspSparsnasGateway/values";
 const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
 
 //const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
-const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";    
-const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid"; 
+const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";
+const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid";
 const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
 const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
 
@@ -148,9 +148,9 @@ void setup() {
   uint32_t isendid;
 
   // Read stored config status. Write this bit when storing settings
-  char savedSettingFreq = char(EEPROM.read(0)); 
-  char savedSettingSenderid = char(EEPROM.read(1)); 
-/*  
+  char savedSettingFreq = char(EEPROM.read(0));
+  char savedSettingSenderid = char(EEPROM.read(1));
+/*
   root["savedFrequency"] = savedSettingFreq;
   root["savedSenderid"] = savedSettingSenderid;
   root.printTo((char*)msg, root.measureLength() + 1);
@@ -159,22 +159,22 @@ void setup() {
   #ifdef DEBUG
     Serial.println("Stored data: ");
     if (savedSettingFreq == 1) {
-      Serial.println("Found a stored frequency");  
+      Serial.println("Found a stored frequency");
     }
     if (savedSettingSenderid == 1){
-      Serial.println("Found a stored senderid"); 
-    } 
+      Serial.println("Found a stored senderid");
+    }
   #endif
-  
+
   if (savedSettingFreq==1) {
      //Serial.println("Frequency stored");
      // Read them
      for (int i = 2; i < 8; ++i)
      {
-        char curC = char(EEPROM.read(i)); 
+        char curC = char(EEPROM.read(i));
         freq += curC;
      }
-     
+
      #ifdef DEBUG
        Serial.print("Stored frequency: ");
        Serial.println(freq);
@@ -188,10 +188,10 @@ void setup() {
      //Serial.println(lft);
      //Serial.println(rgt);
      //Serial.println(tot);
-     
+
      ifreq=tot.toInt();
      //Serial.println(tot);
-     
+
      ifreq=ifreq*10000;
      #ifdef DEBUG
       Serial.print("Calculated frequency: ");
@@ -213,7 +213,7 @@ void setup() {
   if (savedSettingSenderid==1) {
      for (int i = 12; i < 18; ++i)
      {
-        char curC = char(EEPROM.read(i)); 
+        char curC = char(EEPROM.read(i));
         sendid += curC;
      }
      #ifdef DEBUG
@@ -221,14 +221,14 @@ void setup() {
        Serial.println(sendid);
      #endif
       isendid = sendid.toInt();
-       
+
   }
   else {
     Serial.println("There is no stored senderid, using default value");
     root["status"] = "There is no stored senderid, using default value";
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
-    isendid = SENSOR_ID; 
+    isendid = SENSOR_ID;
   }
 
   Serial.print ("Senderid: ");
@@ -239,14 +239,14 @@ void setup() {
   Serial.println(RF69_FSTEP);
 
   /*
-  root["Frequency"] = freq; 
+  root["Frequency"] = freq;
   root["Senderid"] = isendid;
   root.printTo((char*)msg, root.measureLength() + 1);
   client.publish(mqtt_debug_topic, msg);
   */
   // Hostname defaults to esp8266-[ChipID]
   ArduinoOTA.setHostname(appname);
-    
+
   ArduinoOTA.onStart([]() {
     Serial.println("Start");
   });
@@ -289,15 +289,15 @@ void setup() {
   root["status"] = buf;
   root.printTo((char*)msg, root.measureLength() + 1);
   client.publish(mqtt_debug_topic, msg);
-  
+
   // Calc encryption key, used for bytes 5-17
   //Serial.println(SENSOR_ID);
   //Serial.println(isendid);
-  
+
   //const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
   const uint32_t sensor_id_sub = isendid - 0x5D38E8CB;
   //const uint32_t sensor_id_subtest = isendid - 0x5D38E8CB;
-  
+
   enc_key[0] = (uint8_t)(sensor_id_sub >> 24);
   enc_key[1] = (uint8_t)(sensor_id_sub);
   enc_key[2] = (uint8_t)(sensor_id_sub >> 8);
@@ -340,7 +340,7 @@ void setup() {
   #ifdef DEBUG
     String temp = "Listening on " + String(getFrequency()) + "hz. Done in setup.";
     Serial.println(temp);
-    
+
     root["status"] = temp;
     root.printTo((char*)msg, root.measureLength() + 1);
     client.publish(mqtt_debug_topic, msg);
@@ -370,8 +370,8 @@ bool initialize(uint32_t frequency) {
     /* 0x25 */ {REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01},              // PayloadReady
     /* 0x26 */ {REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF},          // DIO5 ClkOut disable for power saving
     /* 0x28 */ {REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN},              // writing to this bit ensures that the FIFO & status flags are reset
-    /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},         
-    /* 0x2B */ {REG_RXTIMEOUT2, (uint8_t)0x00}, // RegRxTimeout2 (0x2B) interrupt is generated TimeoutRssiThresh *16*T bit after Rssi interrupt if PayloadReady interrupt doesn’t occur.                    
+    /* 0x29 */ {REG_RSSITHRESH, RSSITHRESHOLD},
+    /* 0x2B */ {REG_RXTIMEOUT2, (uint8_t)0x00}, // RegRxTimeout2 (0x2B) interrupt is generated TimeoutRssiThresh *16*T bit after Rssi interrupt if PayloadReady interrupt doesn’t occur.
     /* 0x2D */ {REG_PREAMBLELSB, 3}, // default 3 preamble bytes 0xAAAAAA
     /* 0x2E */ {REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0},
     /* 0x2F */ {REG_SYNCVALUE1, (uint8_t)(SYNCVALUE >> 8)},
@@ -435,7 +435,7 @@ bool initialize(uint32_t frequency) {
       root["status"] = mess;
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_debug_topic, msg);
-      
+
     #endif
     return false;
   }
@@ -455,7 +455,7 @@ bool initialize(uint32_t frequency) {
   return true;
 }
 
-void  ICACHE_RAM_ATTR interruptHandler() {  
+void  ICACHE_RAM_ATTR interruptHandler() {
   if (inInterrupt) {
     //Serial.println("Already in interruptHandler.");
     return;
@@ -469,7 +469,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     int16_t srssi;
     srssi = readRSSI();
     dtostrf(srssi, 16, 0, crssi);
-    
+
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
     select();
@@ -488,10 +488,12 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
     #ifdef DEBUG
        Serial.println(F("Got rf data"));
+
     #endif
 
     // Decrypt message
     for (size_t i = 0; i < 13; i++) {
+      Serial.print(TEMPDATA[i]);
       TEMPDATA[5 + i] = TEMPDATA[5 + i] ^ enc_key[i % 5];
     }
 
@@ -500,7 +502,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     String output;
 
     // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
-    // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) { 
+    // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
     // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
     if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
 
@@ -541,8 +543,8 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       int battery = TEMPDATA[17]; // Battery level, 0-100.
 
       // This is how to convert the 'effect' field into Watt:
-      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.      
-      
+      // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
+
       // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (power);
       float watt = power * 24;
@@ -558,11 +560,11 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       */
       #ifdef DEBUG
         // Print menory usage in debug mode
-        int heap = ESP.getFreeHeap(); 
-        Serial.print(F("Memory usage: ")); 
+        int heap = ESP.getFreeHeap();
+        Serial.print(F("Memory usage: "));
         Serial.println (heap);
       #endif
-        
+
       // Prepare for output
       output = "Seq " + String(seq) + ": ";
       output += String(watt) + " W, total: ";
@@ -574,14 +576,14 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       String err = (crc == packet_crc ? "" : "CRC ERR");
 
       float vcc = ESP.getVcc();
-      output += "Vcc: " + String(vcc) + "mV";     
-      
+      output += "Vcc: " + String(vcc) + "mV";
+
       Serial.println(output);
 
       StaticJsonBuffer<150> jsonBuffer;
       JsonObject& root = jsonBuffer.createObject();
       char msg[150];
-        
+
       if (err=="CRC ERR") {
         Serial.println(err);
         #ifdef DEBUG
@@ -598,7 +600,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
         root["pulse"] = String(pulse);
       }
       root.printTo((char*)msg, root.measureLength() + 1);
-      client.publish(mqtt_status_topic, msg); 
+      client.publish(mqtt_status_topic, msg);
     }
 
     unselect();
@@ -612,7 +614,7 @@ void setMode(uint8_t newMode) {
   #ifdef DEBUG
      //Serial.println(F("In setMode"));
   #endif
-      
+
   if (newMode == _mode) {
     return;
   }
@@ -710,7 +712,7 @@ void reconnect() {
         root.printTo((char*)msg, root.measureLength() + 1);
         client.publish(mqtt_debug_topic, msg);
       #endif
-      
+
     } else {
       Serial.print("Mqtt connection failed, rc=");
       Serial.print(client.state());
