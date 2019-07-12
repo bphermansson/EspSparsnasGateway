@@ -493,7 +493,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
     // Decrypt message
     for (size_t i = 0; i < 13; i++) {
-      Serial.print(TEMPDATA[i]);
+      Serial.print(TEMPDATA[5+i]);
       TEMPDATA[5 + i] = TEMPDATA[5 + i] ^ enc_key[i % 5];
     }
 
