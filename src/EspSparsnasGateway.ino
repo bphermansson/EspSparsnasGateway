@@ -6,36 +6,11 @@
   *
  */
 
-// Settings for the Mqtt broker:
-#define MQTT_USERNAME "emonpi"
-#define MQTT_PASSWORD "emonpimqtt2016"
-const char* mqtt_server = "192.168.1.190";
-
-// Wifi settings
-const char* ssid = "NETGEAR83";
-const char* password = "";
-
-// Set this to the value of your energy meter
-#define PULSES_PER_KWH 1000
-// The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
-// Set SENSOR_ID to the last six digits, ie '643654'.
-// You can also set this later via Mqtt settings message, see docs.
-#define SENSOR_ID 643654
+#include "settings.h"
 
 #define DEBUG 1
 
 // You dont have to change anything below
-
-const char* mqtt_status_topic = "EspSparsnasGateway/values";
-const char* mqtt_debug_topic = "EspSparsnasGateway/debug";
-
-//const char* mqtt_sub_topic = "EspSparsnasGateway/settings";
-const char* mqtt_sub_topic_freq = "EspSparsnasGateway/settings/frequency";
-const char* mqtt_sub_topic_senderid = "EspSparsnasGateway/settings/senderid";
-const char* mqtt_sub_topic_clear = "EspSparsnasGateway/settings/clear";
-const char* mqtt_sub_topic_reset = "EspSparsnasGateway/settings/reset";
-
-#define appname "EspSparsnasGateway"
 
 const char compile_date[] = __DATE__ " " __TIME__;
 
@@ -81,7 +56,6 @@ PubSubClient client(espClient);
 uint32_t FXOSC = 32000000;
 uint32_t TwoPowerToNinteen = 524288; // 2^19
 float RF69_FSTEP = (1.0 * FXOSC) / TwoPowerToNinteen; // p13 in datasheet
-uint32_t FREQUENCY = 868000000;
 uint16_t BITRATE = FXOSC / 40000; // 40kBps
 uint16_t FREQUENCYDEVIATION = 10000 / RF69_FSTEP; // 10kHz
 uint16_t SYNCVALUE = 0xd201;
