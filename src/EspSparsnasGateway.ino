@@ -9,7 +9,7 @@
 // Settings for the Mqtt broker:
 #define MQTT_USERNAME "emonpi"
 #define MQTT_PASSWORD "emonpimqtt2016"
-const char* mqtt_server = "192.168.1.79";
+const char* mqtt_server = "192.168.1.190";
 
 // Wifi settings
 const char* ssid = "NETGEAR83";
