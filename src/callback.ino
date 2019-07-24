@@ -1,9 +1,21 @@
+#include <ArduinoJson.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <EEPROM.h>
+#include "settings.h"
+
+
+extern WiFiClient espClient;
+static PubSubClient client(espClient);
+
+extern const char* mqtt_debug_topic;
+
 // When a Mqtt message has arrived
 void callback(char* topic, byte* payload, unsigned int length) {
   StaticJsonBuffer<150> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   char msg[150];
-  
+
   // Extract topic
   Serial.print("Message arrived: ");
   Serial.println(topic);
@@ -12,15 +24,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
   String stringPayload = "";
   for (int i = 0; i < length; i++) {
     stringPayload += (char)payload[i];
-  }  
+  }
   #ifdef DEBUG
     Serial.print ("Payload: ");
     Serial.println(stringPayload);
   #endif
 
   int addr = 0;
-  
-  if(strcmp(topic, "EspSparsnasGateway/settings/frequency") == 0) {  
+
+  if(strcmp(topic, "EspSparsnasGateway/settings/frequency") == 0) {
 
       Serial.println("Frequency change");
 
@@ -31,38 +43,38 @@ void callback(char* topic, byte* payload, unsigned int length) {
  */
       int charLength=stringPayload.length();
       if (charLength==6)
-      { 
+      {
         Serial.print("Set frequency to: ");
         Serial.println(stringPayload);
         // Write bit that indicates stored settings
         EEPROM.write(addr, 1); // Indicate stored settings by writing 1 to Eeprom address 0
         addr = 2;
-        
+
         for (int i = addr; i < stringPayload.length()+2; ++i)
         {
           EEPROM.write(i, stringPayload[i-2]);
           Serial.print("Wrote: ");
           Serial.println(stringPayload[i-2]);
-  
+
         }
         EEPROM.commit();
-  
+
         root["status"] = "Frequency changed";
         root.printTo((char*)msg, root.measureLength() + 1);
         client.publish(mqtt_debug_topic, msg);
-        
+
         delay(10);
         ESP.restart();
       }
-      else 
+      else
       {
         Serial.println("Error in frequency length, use 6 digits like '868.23'");
       }
 
   }
-  if(strcmp(topic, "EspSparsnasGateway/settings/senderid") == 0) {  
+  if(strcmp(topic, "EspSparsnasGateway/settings/senderid") == 0) {
       Serial.println("Senderid change");
-      addr++; 
+      addr++;
       EEPROM.write(addr, 1);    // Indicate stored settings by writing 1 to Eeprom address 1
       byte offs = 12;
       addr = addr + offs;
@@ -80,17 +92,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
       root["NewSenderId"] = stringPayload;
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_debug_topic, msg);
-      
+
       delay(10);
-      ESP.restart();      
+      ESP.restart();
   }
-  if(strcmp(topic, "EspSparsnasGateway/settings/clear") == 0) {  
+  if(strcmp(topic, "EspSparsnasGateway/settings/clear") == 0) {
       Serial.println("Clear settings");
       for (int i = 0; i < 512; i++) {
         EEPROM.write(i, 0);
       }
       EEPROM.commit();
-      
+
       root["status"] = "Settings cleared";
       root.printTo((char*)msg, root.measureLength() + 1);
       client.publish(mqtt_debug_topic, msg);
@@ -98,7 +110,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       delay(10);
       ESP.restart();
   }
-    if(strcmp(topic, "EspSparsnasGateway/settings/reset") == 0) {  
+    if(strcmp(topic, "EspSparsnasGateway/settings/reset") == 0) {
       Serial.println("Reset");
       root["status"] = "Reset";
       root.printTo((char*)msg, root.measureLength() + 1);
