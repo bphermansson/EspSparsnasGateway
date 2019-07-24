@@ -1,3 +1,12 @@
+#include <Arduino.h>
+#include <RFM69registers.h>
+
+static volatile uint8_t DATALEN;
+#define RF69_MODE_STANDBY 1    // XTAL ON
+extern WiFiClient espClient;
+extern PubSubClient client(espClient);
+
+
 uint32_t getFrequency() {
   return RF69_FSTEP * (((uint32_t)readReg(REG_FRFMSB) << 16) + ((uint16_t)readReg(REG_FRFMID) << 8) + readReg(REG_FRFLSB));
 }
@@ -46,7 +55,7 @@ uint16_t readRSSI() {
 /*  if (forceTrigger) {
     // RSSI trigger not needed if DAGC is in continuous mode
     writeReg(REG_RSSICONFIG, RF_RSSI_START);
-          client.publish(mqtt_status_topic, "In rssi read"); 
+          client.publish(mqtt_status_topic, "In rssi read");
 
     while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00) {
       // wait for RSSI_Ready
@@ -97,4 +106,3 @@ uint16_t crc16(volatile uint8_t *data, size_t n) {
   }
   return crcReg;
 }
-
