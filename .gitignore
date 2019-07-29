@@ -4,4 +4,4 @@
 .clang*
 .gcc*
 .pio*
-settings.h
+include/settings.h
