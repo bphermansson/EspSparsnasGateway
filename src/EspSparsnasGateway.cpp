@@ -5,7 +5,6 @@
   * Which in turn is based on Strigeus work: https://github.com/strigeus/sparsnas_decoder
   *
  */
-#include "settings.h"
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
@@ -14,13 +13,12 @@
 #include <ArduinoJson.h>
 /*------------------------------*/
 #include <RFM69registers.h>
-#include <EspSparsnasGateway.h>
 #include <RFM69functions.h>
-#include <callback.h>
 #include <reconn.h>
 #include <mqttpub.h>
+#include <ntp.h>
+#include <settings.h>
 
-#define DEBUG 1
 #define _interruptNum 5 // = ESP8266 GPIO5
 
 WiFiClient wClient;
@@ -50,7 +48,7 @@ void setup() {
      Serial.println(F("Debug on"));
      Serial.print (F("Vcc="));
      Serial.println(ESP.getVcc());
-     Serial.print (F("Set up WiFi..."));
+     Serial.println (F("Set up WiFi..."));
   #endif
 
   WiFi.mode(WIFI_STA);
@@ -63,8 +61,7 @@ void setup() {
   WiFi.hostname(appname);
 
   // Setup Mqtt connection
-  mClient.begin(mqtt_server, wClient);
-  mClient.onMessage(callback);
+  mClient.begin(MQTT_SERVER, wClient);
   reconnect();
 
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
@@ -95,6 +92,8 @@ void setup() {
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
+
+  setup_NTP();
 
   mqttMess = "Over The Air programming enabled, port: " + String(appname);
   #ifdef DEBUG

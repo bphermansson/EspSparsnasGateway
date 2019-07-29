@@ -1,13 +1,12 @@
+#include "settings.h"
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <MQTT.h> // MQTT by Joel Gaehwiler
 #include <SPI.h>
 #include <ArduinoJson.h>
-#include "settings.h"
 #include <RFM69registers.h>
 
-#define RF69_MODE_STANDBY 1    // XTAL ON
-extern WiFiClient wClient;
+static WiFiClient wClient;
 static MQTTClient mClient;
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
@@ -21,9 +20,10 @@ static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
 
+static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
+
 #define _interruptNum 5
 static volatile bool inInterrupt = false; // Fake Mutex
-
 
 uint32_t FXOSC = 32000000;
 uint32_t TwoPowerToNinteen = 524288; // 2^19
@@ -35,16 +35,12 @@ uint8_t RSSITHRESHOLD = 0xE4; // must be set to dBm = (-Sensitivity / 2), defaul
 uint8_t PAYLOADLENGTH = 20;
 
 static volatile uint8_t _mode;
-//static volatile uint16_t RSSI; // Most accurate RSSI during reception (closest to the reception)
 uint8_t enc_key[5];
 uint16_t rssi = 0;
 
 uint16_t readRSSI();
 
 void  ICACHE_RAM_ATTR interruptHandler();
-
-static const char* mqtt_status_topic;
-static const char* mqtt_debug_topic;
 
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void select() {
@@ -74,8 +70,9 @@ void writeReg(uint8_t addr, uint8_t value) {
 }
 
 void setMode(uint8_t newMode) {
+
   #ifdef DEBUG
-     //Serial.println(F("In setMode"));
+     Serial.println(F("In setMode"));
   #endif
 
   if (newMode == _mode) {
@@ -114,7 +111,6 @@ void setMode(uint8_t newMode) {
   if (millis() - start >= timeout) {
       //Timeout when waiting for getting out of sleep
   }
-
   _mode = newMode;
 }
 
@@ -123,7 +119,6 @@ uint32_t getFrequency() {
 }
 void receiveBegin() {
   DATALEN = 0;
-  //RSSI = 0;
   if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY) {
     uint8_t val = readReg(REG_PACKETCONFIG2);
     // avoid RX deadlocks
@@ -131,7 +126,6 @@ void receiveBegin() {
   }
   setMode(RF69_MODE_RX);
 }
-
 
 // get the received signal strength indicator (RSSI)
 //uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a crash...
@@ -147,9 +141,10 @@ uint16_t readRSSI() {
     }
   }*/
   rssi = -readReg(REG_RSSIVALUE);
-  //Serial.println(rssi);
-  //rssi >>= 1;
-  //Serial.println(rssi);
+  #ifdef DEBUG
+    Serial.println("rssi: ");
+    Serial.println(rssi);
+  #endif
   return rssi;
 }
 
@@ -157,6 +152,9 @@ uint16_t readRSSI() {
 bool receiveDone() {
   // noInterrupts(); // re-enabled in unselect() via setMode() or via
   // receiveBegin()
+  #ifdef DEBUG
+    //Serial.println("receiveDone");
+  #endif
 
   if (_mode == RF69_MODE_RX && DATALEN > 0) {
     setMode(RF69_MODE_STANDBY); // enables interrupts
@@ -174,7 +172,7 @@ bool receiveDone() {
 
 uint16_t crc16(volatile uint8_t *data, size_t n) {
   #ifdef DEBUG
-    //Serial.println("In crc16");
+    Serial.println("In crc16");
   #endif
   uint16_t crcReg = 0xffff;
   size_t i, j;
@@ -191,13 +189,11 @@ uint16_t crc16(volatile uint8_t *data, size_t n) {
   return crcReg;
 }
 bool initialize(uint32_t frequency) {
-  Serial.print("In initialize, frequency = ");
-  Serial.println(frequency);
+  #ifdef DEBUG
+    Serial.print("In initialize, frequency = ");
+    Serial.println(frequency);
+  #endif
   frequency = frequency / RF69_FSTEP;
-  Serial.print("Adjusted freq: ");  // Adjusted freq: 14221312
-  Serial.println(frequency);
-  Serial.print("RF69_FSTEP: ");
-  Serial.println(RF69_FSTEP);
 
   const uint8_t CONFIG[][2] = {
     /* 0x01 */ {REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY},
@@ -243,7 +239,9 @@ bool initialize(uint32_t frequency) {
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0xaa && millis() - start < timeout);
   if (readReg(REG_SYNCVALUE1) != 0xaa) {
-    Serial.println("ERROR: Failed setting syncvalue1 1st time");
+    #ifdef DEBUG
+      Serial.println("ERROR: Failed setting syncvalue1 1st time");
+    #endif
     return false;
   }
   start = millis();
@@ -252,7 +250,9 @@ bool initialize(uint32_t frequency) {
     yield();
   } while (readReg(REG_SYNCVALUE1) != 0x55 && millis() - start < timeout);
   if (readReg(REG_SYNCVALUE1) != 0x55) {
-    Serial.println("ERROR: Failed setting syncvalue1 2nd time");
+    #ifdef DEBUG
+      Serial.println("ERROR: Failed setting syncvalue1 2nd time");
+    #endif
     return false;
   }
   for (uint8_t i = 0; CONFIG[i][0] != 255; i++) {
@@ -264,42 +264,28 @@ bool initialize(uint32_t frequency) {
   start = millis();
   while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis() - start < timeout) {
     // wait for ModeReady
-    //codeLibrary.wait(1);
     delay(1);
   }
   if (millis() - start >= timeout) {
     #ifdef DEBUG
-      char mess[ ] = "Failed on waiting for ModeReady()";
-      Serial.println(mess);
-/*
-      const size_t capacity = JSON_OBJECT_SIZE(1);
-      DynamicJsonDocument status(capacity);
-      status["status"] = mess;
-      serializeJson(status, String mqttMess);
-      mClient.publish(mqtt_debug_topic, mqttMess);
-*/
+      Serial.println("Failed on waiting for ModeReady()");
     #endif
     return false;
   }
   attachInterrupt(_interruptNum, interruptHandler, RISING);
 
   #ifdef DEBUG
-    char mess[ ] = "RFM69 init done";
-    Serial.println(mess);
-/*
-    StaticJsonBuffer<150> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-    char msg[150];
-    root["status"] = mess;
-    root.printTo((char*)msg, root.measureLength() + 1);
-    mClient.publish(mqtt_debug_topic, msg);
-    */
+    Serial.println("RFM69 init done");
   #endif
   return true;
 }
 void  ICACHE_RAM_ATTR interruptHandler() {
+  String output;
+
   if (inInterrupt) {
-    //Serial.println("Already in interruptHandler.");
+    #ifdef DEBUG
+      Serial.println("Already in interruptHandler.");
+    #endif
     return;
   }
   inInterrupt = true;
@@ -329,7 +315,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
 
     #ifdef DEBUG
-      // Serial.println(F("Got rf data"));
+      Serial.println(F("Got rf data"));
     #endif
 
     const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
@@ -345,43 +331,24 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     }
 
     uint32_t rcv_sensor_id = TEMPDATA[5] << 24 | TEMPDATA[6] << 16 | TEMPDATA[7] << 8 | TEMPDATA[8];
-/*
-    Serial.print("SENSOR_ID & 0xFF: ");
-    Serial.println(SENSOR_ID & 0xFF);
-    Serial.print("TEMPDATA[1]: ");
-    Serial.println(TEMPDATA[1]);
-    Serial.print("TEMPDATA[3]: ");
-    Serial.println(TEMPDATA[3]);
-    Serial.print("rcv_sensor_id: ");
-    Serial.println(rcv_sensor_id);
-*/
-    if (TEMPDATA[0] == 0x11 || TEMPDATA[1] == (SENSOR_ID & 0xFF || TEMPDATA[3] == 0x07 )) {
-      Serial.println("Good!");
-      Serial.print("rcv_sensor_id:");
-      Serial.println(rcv_sensor_id);
-      Serial.println(SENSOR_ID);
-      for(int i = 0; i < 5; i++)
-      {
-        Serial.println(enc_key[i]);
-      }
-    }
-
-    String output;
 
     // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
     // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
     // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
     if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
-/*
-      output = "";
-      Serial.println("Bad packet!");
-      for (uint8_t i = 0; i < 20; i++) {
-         if (TEMPDATA[i]<0x10) {Serial.print("0");}
-         Serial.print(TEMPDATA[i],HEX);
-         Serial.print(" ");
-      }
-*/
+      #ifdef DEBUG
+        output = "";
+        Serial.println("Bad packet!");
+        for (uint8_t i = 0; i < 20; i++) {
+           if (TEMPDATA[i]<0x10) {Serial.print("0");}
+           Serial.print(TEMPDATA[i],HEX);
+           Serial.print(" ");
+        }
+      #endif
     } else {
+      #ifdef DEBUG
+        Serial.println("Valid package received!");
+      #endif
       /*
         0: uint8_t length;        // Always 0x11
         1: uint8_t sender_id_lo;  // Lowest byte of sender ID
@@ -394,19 +361,6 @@ void  ICACHE_RAM_ATTR interruptHandler() {
         13:uint32_t pulses;       // Total number of pulses
         17:uint8_t battery;       // Battery level, 0-100.
       */
-
-
-      output = "";
-      for (uint8_t i = 0; i < 20; i++) {
-        //output += codeLibrary.ToHex(TEMPDATA[i]) + " ";
-         if (TEMPDATA[i]<0x10) {Serial.print("0");}
-         Serial.print(TEMPDATA[i],HEX);
-         Serial.print(" ");
-      }
-      Serial.println(output);
-
-
-
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
       int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
@@ -445,34 +399,33 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       output += String(srssi) + "dBm. Power(raw): ";
       output += String(power) + " ";
       output += (crc == packet_crc ? "" : "CRC ERR");
-      //String err = (crc == packet_crc ? "" : "CRC ERR");
+      String err = (crc == packet_crc ? "" : "CRC ERR");
 
       float vcc = ESP.getVcc();
       output += "Vcc: " + String(vcc) + "mV";
       Serial.println(output);
-/*
+
+      const size_t capacity = JSON_OBJECT_SIZE(8);
+      DynamicJsonDocument status(capacity);
       if (err=="CRC ERR") {
         Serial.println(err);
-        #ifdef DEBUG
-          status["error"] = "CRC Error";
-        #endif
+        status["error"] = "CRC Error";
       }
-
       else {
-        status["seq"] = seq;
-        status["watt"] = float(watt);
-        status["total"] = float(pulse) / float(PULSES_PER_KWH);
-        status["battery"] = battery;
-        status["rssi"] = String(srssi);
-        status["power"] = String(power);
-        status["pulse"] = String(pulse);
+        status["error"] = "";
       }
-      */
 
-      /*
-      serializeJson(status, String mqttMess);
+      status["seq"] = seq;
+      status["watt"] = float(watt);
+      status["total"] = float(pulse) / float(PULSES_PER_KWH);
+      status["battery"] = battery;
+      status["rssi"] = String(srssi);
+      status["power"] = String(power);
+      status["pulse"] = String(pulse);
+
+      String mqttMess;
+      serializeJson(status, mqttMess);
       mClient.publish(mqtt_status_topic, mqttMess);
-      */
     }
 
     unselect();
