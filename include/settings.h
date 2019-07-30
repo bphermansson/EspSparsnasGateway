@@ -19,7 +19,11 @@
   #define WIFISSID "NETGEAR83"
   #define WIFIPASSWORD ""
 
-  #define appname "EspSparsnasGateway"
+  #define APPNAME "EspSparsnasGateway"
 
   #define SERIALSPEED 115200
+
+  #define LOCALTZ "Etc/GMT-2"
+  #define NTPSERVERNAME "pool.ntp.org"
+
 #endif

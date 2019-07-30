@@ -38,6 +38,11 @@ static volatile uint8_t _mode;
 uint8_t enc_key[5];
 uint16_t rssi = 0;
 
+extern timeval tv;
+extern timespec tp;
+extern time_t now;
+extern "C" int clock_gettime(clockid_t unused, struct timespec *tp);
+
 uint16_t readRSSI();
 
 void  ICACHE_RAM_ATTR interruptHandler();
@@ -142,7 +147,7 @@ uint16_t readRSSI() {
   }*/
   rssi = -readReg(REG_RSSIVALUE);
   #ifdef DEBUG
-    Serial.println("rssi: ");
+    Serial.print("rssi: ");
     Serial.println(rssi);
   #endif
   return rssi;
@@ -344,11 +349,21 @@ void  ICACHE_RAM_ATTR interruptHandler() {
            Serial.print(TEMPDATA[i],HEX);
            Serial.print(" ");
         }
+        Serial.println(" ");
+
       #endif
     } else {
       #ifdef DEBUG
         Serial.println("Valid package received!");
       #endif
+
+      gettimeofday(&tv, nullptr);
+      clock_gettime(0, &tp);
+      now = time(nullptr);
+      // EPOCH+tz+dst
+//      Serial.print("Time:");
+      //Serial.print(ctime(&now));
+
       /*
         0: uint8_t length;        // Always 0x11
         1: uint8_t sender_id_lo;  // Lowest byte of sender ID
@@ -393,6 +408,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
       // Prepare for output
       output = "Seq " + String(seq) + ": ";
+      output += String(now) + ", ";
       output += String(watt) + " W, total: ";
       output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
       output += String(battery) + "%, rssi ";
@@ -416,6 +432,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       }
 
       status["seq"] = seq;
+      status["timestamp"] = String(now);
       status["watt"] = float(watt);
       status["total"] = float(pulse) / float(PULSES_PER_KWH);
       status["battery"] = battery;
@@ -427,7 +444,6 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       serializeJson(status, mqttMess);
       mClient.publish(mqtt_status_topic, mqttMess);
     }
-
     unselect();
     setMode(RF69_MODE_RX);
   }

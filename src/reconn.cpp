@@ -12,9 +12,9 @@ void reconnect() {
     #ifdef DEBUG
       Serial.print("Attempting MQTT connection...");
     #endif
-    if (mClient.connect(appname, MQTT_USERNAME, MQTT_PASSWORD)) {
+    if (mClient.connect(APPNAME, MQTT_USERNAME, MQTT_PASSWORD)) {
       #ifdef DEBUG
-        String buf = "Connected to Mqtt broker as " + String(appname);
+        String buf = "Connected to Mqtt broker as " + String(APPNAME);
         Serial.println(buf);
       #endif
 

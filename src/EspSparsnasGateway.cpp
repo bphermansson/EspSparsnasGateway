@@ -42,7 +42,7 @@ void setup() {
   ifreq = FREQUENCY;
   isendid = SENSOR_ID;
   Serial.begin(SERIALSPEED);
-  Serial.println("Welcome to " + String(appname));
+  Serial.println("Welcome to " + String(APPNAME));
 
   #ifdef DEBUG
      Serial.println(F("Debug on"));
@@ -58,7 +58,7 @@ void setup() {
     delay(5000);
     ESP.restart();
   }
-  WiFi.hostname(appname);
+  WiFi.hostname(APPNAME);
 
   // Setup Mqtt connection
   mClient.begin(MQTT_SERVER, wClient);
@@ -72,7 +72,7 @@ void setup() {
   mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
 
   // Hostname defaults to esp8266-[ChipID], change this
-  ArduinoOTA.setHostname(appname);
+  ArduinoOTA.setHostname(APPNAME);
 
   ArduinoOTA.onStart([]() {
     Serial.println("Start");
@@ -95,7 +95,7 @@ void setup() {
 
   setup_NTP();
 
-  mqttMess = "Over The Air programming enabled, port: " + String(appname);
+  mqttMess = "Over The Air programming enabled, port: " + String(APPNAME);
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
