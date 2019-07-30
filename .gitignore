@@ -3,5 +3,5 @@
 .piolibdeps/
 .clang*
 .gcc*
-.pio
+.pio*
 include/settings.h
