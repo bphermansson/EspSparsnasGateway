@@ -37,6 +37,7 @@ D8	- Gpio15
 
 ![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
 
+Note! Adafruit modules requires a connection from RST to GND! (Ref: https://www.mysensors.org/build/connect_radio#wiring-the-rfm69-radio).
 
 ### Parts
 You can build your own device using these parts: (To see the language specific page make sure to select the language at the top of the page or it will give a 404.)
