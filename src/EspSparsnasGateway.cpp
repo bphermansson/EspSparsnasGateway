@@ -21,6 +21,10 @@
 
 #define _interruptNum 5 // = ESP8266 GPIO5
 
+#define red_led D0
+#define green_led D3
+#define blue_led D2
+
 WiFiClient wClient;
 MQTTClient mClient;
 const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
@@ -44,6 +48,24 @@ void setup() {
   Serial.begin(SERIALSPEED);
   Serial.println("Welcome to " + String(APPNAME));
 
+  pinMode (red_led, OUTPUT);
+  pinMode (green_led, OUTPUT);
+  pinMode (blue_led, OUTPUT);
+
+  // Test leds
+  digitalWrite(red_led, HIGH);
+  delay(500);
+  digitalWrite(green_led, HIGH);
+  delay(500);
+  digitalWrite(blue_led, HIGH);
+  delay(500);
+
+  digitalWrite(red_led, LOW);
+  digitalWrite(green_led, LOW);
+  digitalWrite(blue_led, LOW);
+  delay(500);
+
+
   #ifdef DEBUG
      Serial.println(F("Debug on"));
      Serial.print (F("Vcc="));
@@ -55,9 +77,12 @@ void setup() {
   WiFi.begin(WIFISSID, WIFIPASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println(F("WiFi connection Failed! Rebooting..."));
+    digitalWrite(red_led, HIGH);
     delay(5000);
     ESP.restart();
   }
+  digitalWrite(red_led, LOW);
+
   WiFi.hostname(APPNAME);
 
   // Setup Mqtt connection
@@ -124,6 +149,10 @@ void setup() {
     #endif
     mqttpub(String(mqtt_debug_topic), "Radio", mqttMess, mqttMess.length());
   }
+
+// All ok
+digitalWrite(green_led, HIGH);
+
 }
 
 void loop() {
