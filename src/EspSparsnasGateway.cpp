@@ -11,6 +11,7 @@
 #include <MQTT.h> // MQTT by Joel Gaehwiler
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
+#include <Ticker.h>
 /*------------------------------*/
 #include <RFM69registers.h>
 #include <RFM69functions.h>
@@ -21,10 +22,6 @@
 
 #define _interruptNum 5 // = ESP8266 GPIO5
 
-#define red_led D0
-#define green_led D3
-#define blue_led D2
-
 WiFiClient wClient;
 MQTTClient mClient;
 const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
@@ -33,12 +30,18 @@ const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 
+Ticker blinkerRed;
+Ticker blinkerGreen;
+
 unsigned long lastRecievedData = millis();
 String mqttMess;
 String freq, sendid;
 uint32_t ifreq;
 uint32_t isendid;
 const char compile_date[] = __DATE__ " " __TIME__;
+
+void changeStateRED_LED();
+void changeStateGREEN_LED();
 
 /* ----------------------------------------------------*/
 
@@ -48,23 +51,24 @@ void setup() {
   Serial.begin(SERIALSPEED);
   Serial.println("Welcome to " + String(APPNAME));
 
-  pinMode (red_led, OUTPUT);
-  pinMode (green_led, OUTPUT);
-  pinMode (blue_led, OUTPUT);
+  pinMode (RED_LED, OUTPUT);
+  pinMode (GREEN_LED, OUTPUT);
+  pinMode (BLUE_LED, OUTPUT);
 
   // Test leds
-  digitalWrite(red_led, HIGH);
+  digitalWrite(RED_LED, HIGH);
   delay(500);
-  digitalWrite(green_led, HIGH);
+  digitalWrite(GREEN_LED, HIGH);
   delay(500);
-  digitalWrite(blue_led, HIGH);
-  delay(500);
-
-  digitalWrite(red_led, LOW);
-  digitalWrite(green_led, LOW);
-  digitalWrite(blue_led, LOW);
+  digitalWrite(BLUE_LED, HIGH);
   delay(500);
 
+  digitalWrite(RED_LED, LOW);
+  digitalWrite(GREEN_LED, LOW);
+  digitalWrite(BLUE_LED, LOW);
+  delay(500);
+
+  blinkerGreen.attach(0.5, changeStateGREEN_LED);
 
   #ifdef DEBUG
      Serial.println(F("Debug on"));
@@ -77,11 +81,10 @@ void setup() {
   WiFi.begin(WIFISSID, WIFIPASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println(F("WiFi connection Failed! Rebooting..."));
-    digitalWrite(red_led, HIGH);
+    blinkerRed.attach(0.5, changeStateRED_LED);
     delay(5000);
     ESP.restart();
   }
-  digitalWrite(red_led, LOW);
 
   WiFi.hostname(APPNAME);
 
@@ -134,6 +137,7 @@ void setup() {
 
   if (!initialize(ifreq)) {
     mqttMess =  "Unable to initialize the radio. Exiting.";
+    blinkerRed.attach(0.3, changeStateRED_LED);
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
@@ -151,8 +155,8 @@ void setup() {
   }
 
 // All ok
-digitalWrite(green_led, HIGH);
-
+  blinkerGreen.detach();
+  digitalWrite(GREEN_LED, HIGH);
 }
 
 void loop() {
@@ -162,5 +166,12 @@ void loop() {
   // Note! This routine is necessary, don't remove it!
   if (receiveDone()) {
   }
-
+}
+void changeStateRED_LED()
+{
+  digitalWrite(RED_LED, !(digitalRead(RED_LED)));  //Invert Current State of LED
+}
+void changeStateGREEN_LED()
+{
+  digitalWrite(GREEN_LED, !(digitalRead(GREEN_LED)));  //Invert Current State of LED
 }

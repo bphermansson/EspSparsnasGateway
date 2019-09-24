@@ -16,8 +16,6 @@ static MQTTClient mClient;
 #define RF69_MODE_TX 4    // TX MODE
 #define _interruptNum 5
 
-#define blue_led D2
-
 static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
@@ -297,7 +295,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
   }
   inInterrupt = true;
 
-  digitalWrite(blue_led, HIGH);
+  digitalWrite(BLUE_LED, HIGH);
 
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
 
@@ -430,6 +428,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       if (err=="CRC ERR") {
         Serial.println(err);
         status["error"] = "CRC Error";
+        digitalWrite(RED_LED, HIGH);
+        delay(500);
+        digitalWrite(RED_LED, LOW);
       }
       else {
         status["error"] = "";
@@ -451,7 +452,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     unselect();
     setMode(RF69_MODE_RX);
   }
-  digitalWrite(blue_led, LOW);
+  digitalWrite(BLUE_LED, LOW);
 
   //Serial.println("Int done");
   inInterrupt = false;

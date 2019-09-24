@@ -23,4 +23,8 @@
   #define NTPSERVERNAME "pool.ntp.org"
   #define LOCALTZ "Etc/GMT-2"
   #define SERIALSPEED 115200
+
+  #define red_led D0
+  #define green_led D3
+  #define blue_led D2
 #endif
