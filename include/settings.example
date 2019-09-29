@@ -14,6 +14,7 @@
   #define MQTT_USERNAME "mqtt_user"
   #define MQTT_PASSWORD "mqtt_pass"
   #define MQTT_SERVER "192.168.1.190"
+  #define MQTT_PORT 1883
 
   // WiFi settings
   #define WIFISSID "wifi_user"
@@ -24,7 +25,7 @@
   #define LOCALTZ "Etc/GMT-2"
   #define SERIALSPEED 115200
 
-  #define red_led D0
-  #define green_led D3
-  #define blue_led D2
+  #define RED_LED D0
+  #define GREEN_LED D3
+  #define BLUE_LED D2
 #endif
