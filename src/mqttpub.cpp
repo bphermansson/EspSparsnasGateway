@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
+#include <PubSubClient.h>
 #include <ArduinoJson.h>
-extern MQTTClient mClient;
+
+extern PubSubClient mClient;
 
 bool mqttpub(String topic, String subject, String mess, int size) {
   const size_t capacity = JSON_OBJECT_SIZE(size);
@@ -9,5 +10,5 @@ bool mqttpub(String topic, String subject, String mess, int size) {
   String mqttMess;
   status[subject] = mess;
   serializeJson(status, mqttMess);
-  mClient.publish(topic, mqttMess);
+  mClient.publish((char*) topic.c_str(),(char*) mqttMess.c_str());
 }

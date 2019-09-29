@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
+#include <PubSubClient.h> 
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <Ticker.h>
@@ -23,7 +23,8 @@
 #define _interruptNum 5 // = ESP8266 GPIO5
 
 WiFiClient wClient;
-MQTTClient mClient;
+PubSubClient mClient(wClient);
+
 const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
 const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 
@@ -89,7 +90,7 @@ void setup() {
   WiFi.hostname(APPNAME);
 
   // Setup Mqtt connection
-  mClient.begin(MQTT_SERVER, wClient);
+  mClient.setServer(MQTT_SERVER, MQTT_PORT);
   reconnect();
 
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
@@ -161,8 +162,11 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
+  if (!mClient.connected()) {
+    reconnect();
+  }
   mClient.loop();
-
+  delay(10);
   // Note! This routine is necessary, don't remove it!
   if (receiveDone()) {
   }

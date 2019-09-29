@@ -1,13 +1,11 @@
 #include "settings.h"
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
+#include <PubSubClient.h> 
+#include <mqttpub.h>
 #include <SPI.h>
 #include <ArduinoJson.h>
 #include <RFM69registers.h>
-
-static WiFiClient wClient;
-static MQTTClient mClient;
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -447,7 +445,8 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
       String mqttMess;
       serializeJson(status, mqttMess);
-      mClient.publish(mqtt_status_topic, mqttMess);
+      mqttpub(mqtt_status_topic, "", mqttMess, mqttMess.length());
+      //mClient.publish(mqtt_status_topic, mqttMess.c_str());
     }
     unselect();
     setMode(RF69_MODE_RX);
