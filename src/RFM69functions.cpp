@@ -21,6 +21,8 @@ static volatile uint8_t DATALEN;
 static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
 static String mqttMess;
 
+extern PubSubClient mClient;
+
 #define _interruptNum 5
 static volatile bool inInterrupt = false; // Fake Mutex
 
@@ -444,8 +446,10 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       status["power"] = String(power);
       status["pulse"] = String(pulse);
 
+      mqttMess = "";
       serializeJson(status, mqttMess);
-      mqttpub(String(mqtt_status_topic), "Data", mqttMess, mqttMess.length());
+      mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
+      //mqttpub(String(mqtt_status_topic), "Data", mqttMess, mqttMess.length());
     }
     unselect();
     setMode(RF69_MODE_RX);
