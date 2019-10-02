@@ -1,7 +1,12 @@
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
-  #define DEBUG 1
+  /*
+   Uncomment the next line to enable debug mode.
+   This gives much more info about what's happening
+   to the serial port.
+  */
+  //#define DEBUG 1
 
   // Set this to the value of your energy meter
   #define PULSES_PER_KWH 1000
@@ -23,4 +28,8 @@
   #define NTPSERVERNAME "pool.ntp.org"
   #define LOCALTZ "Etc/GMT-2"
   #define SERIALSPEED 115200
+
+  #define LED_RED D0
+  #define LED_GREEN D3
+  #define LED_BLUE D2
 #endif

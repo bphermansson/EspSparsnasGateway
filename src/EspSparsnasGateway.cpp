@@ -1,4 +1,4 @@
- /*
+/*
   * https://github.com/bphermansson/EspSparsnasGateway
   *
   * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
@@ -11,6 +11,7 @@
 #include <MQTT.h> // MQTT by Joel Gaehwiler
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
+#include <Ticker.h>
 /*------------------------------*/
 #include <RFM69registers.h>
 #include <RFM69functions.h>
@@ -29,12 +30,18 @@ const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
 
+Ticker blinkerRed;
+Ticker blinkerGreen;
+
 unsigned long lastRecievedData = millis();
 String mqttMess;
 String freq, sendid;
 uint32_t ifreq;
 uint32_t isendid;
 const char compile_date[] = __DATE__ " " __TIME__;
+
+void changeStateLED_RED();
+void changeStateGREEN_LED();
 
 /* ----------------------------------------------------*/
 
@@ -43,6 +50,25 @@ void setup() {
   isendid = SENSOR_ID;
   Serial.begin(SERIALSPEED);
   Serial.println("Welcome to " + String(APPNAME));
+
+  pinMode (LED_RED, OUTPUT);
+  pinMode (LED_GREEN, OUTPUT);
+  pinMode (LED_BLUE, OUTPUT);
+
+  // Test leds
+  digitalWrite(LED_RED, HIGH);
+  delay(500);
+  digitalWrite(LED_GREEN, HIGH);
+  delay(500);
+  digitalWrite(LED_BLUE, HIGH);
+  delay(500);
+
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_BLUE, LOW);
+  delay(500);
+
+  blinkerGreen.attach(0.5, changeStateGREEN_LED);
 
   #ifdef DEBUG
      Serial.println(F("Debug on"));
@@ -55,9 +81,11 @@ void setup() {
   WiFi.begin(WIFISSID, WIFIPASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println(F("WiFi connection Failed! Rebooting..."));
+    blinkerRed.attach(0.5, changeStateLED_RED);
     delay(5000);
     ESP.restart();
   }
+
   WiFi.hostname(APPNAME);
 
   // Setup Mqtt connection
@@ -70,6 +98,9 @@ void setup() {
     Serial.println(mqttMess);
   #endif
   mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
+
+  Serial.println(mqtt_status_topic);
+
 
   // Hostname defaults to esp8266-[ChipID], change this
   ArduinoOTA.setHostname(APPNAME);
@@ -109,6 +140,7 @@ void setup() {
 
   if (!initialize(ifreq)) {
     mqttMess =  "Unable to initialize the radio. Exiting.";
+    blinkerRed.attach(0.3, changeStateLED_RED);
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
@@ -124,6 +156,10 @@ void setup() {
     #endif
     mqttpub(String(mqtt_debug_topic), "Radio", mqttMess, mqttMess.length());
   }
+
+// All ok
+  blinkerGreen.detach();
+  digitalWrite(LED_GREEN, HIGH);
 }
 
 void loop() {
@@ -133,5 +169,12 @@ void loop() {
   // Note! This routine is necessary, don't remove it!
   if (receiveDone()) {
   }
-
+}
+void changeStateLED_RED()
+{
+  digitalWrite(LED_RED, !(digitalRead(LED_RED)));  //Invert Current State of LED
+}
+void changeStateGREEN_LED()
+{
+  digitalWrite(LED_GREEN, !(digitalRead(LED_GREEN)));  //Invert Current State of LED
 }
