@@ -1,4 +1,4 @@
- /*
+/*
   * https://github.com/bphermansson/EspSparsnasGateway
   *
   * Based on code from user Sommarlov @ EF: http://elektronikforumet.com/forum/viewtopic.php?f=2&t=85006&start=255#p1357610
@@ -40,7 +40,7 @@ uint32_t ifreq;
 uint32_t isendid;
 const char compile_date[] = __DATE__ " " __TIME__;
 
-void changeStateRED_LED();
+void changeStateLED_RED();
 void changeStateGREEN_LED();
 
 /* ----------------------------------------------------*/
@@ -51,21 +51,21 @@ void setup() {
   Serial.begin(SERIALSPEED);
   Serial.println("Welcome to " + String(APPNAME));
 
-  pinMode (RED_LED, OUTPUT);
-  pinMode (GREEN_LED, OUTPUT);
-  pinMode (BLUE_LED, OUTPUT);
+  pinMode (LED_RED, OUTPUT);
+  pinMode (LED_GREEN, OUTPUT);
+  pinMode (LED_BLUE, OUTPUT);
 
   // Test leds
-  digitalWrite(RED_LED, HIGH);
+  digitalWrite(LED_RED, HIGH);
   delay(500);
-  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(LED_GREEN, HIGH);
   delay(500);
-  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(LED_BLUE, HIGH);
   delay(500);
 
-  digitalWrite(RED_LED, LOW);
-  digitalWrite(GREEN_LED, LOW);
-  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_BLUE, LOW);
   delay(500);
 
   blinkerGreen.attach(0.5, changeStateGREEN_LED);
@@ -81,7 +81,7 @@ void setup() {
   WiFi.begin(WIFISSID, WIFIPASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println(F("WiFi connection Failed! Rebooting..."));
-    blinkerRed.attach(0.5, changeStateRED_LED);
+    blinkerRed.attach(0.5, changeStateLED_RED);
     delay(5000);
     ESP.restart();
   }
@@ -98,6 +98,9 @@ void setup() {
     Serial.println(mqttMess);
   #endif
   mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
+
+  Serial.println(mqtt_status_topic);
+
 
   // Hostname defaults to esp8266-[ChipID], change this
   ArduinoOTA.setHostname(APPNAME);
@@ -137,7 +140,7 @@ void setup() {
 
   if (!initialize(ifreq)) {
     mqttMess =  "Unable to initialize the radio. Exiting.";
-    blinkerRed.attach(0.3, changeStateRED_LED);
+    blinkerRed.attach(0.3, changeStateLED_RED);
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
@@ -156,7 +159,7 @@ void setup() {
 
 // All ok
   blinkerGreen.detach();
-  digitalWrite(GREEN_LED, HIGH);
+  digitalWrite(LED_GREEN, HIGH);
 }
 
 void loop() {
@@ -167,11 +170,11 @@ void loop() {
   if (receiveDone()) {
   }
 }
-void changeStateRED_LED()
+void changeStateLED_RED()
 {
-  digitalWrite(RED_LED, !(digitalRead(RED_LED)));  //Invert Current State of LED
+  digitalWrite(LED_RED, !(digitalRead(LED_RED)));  //Invert Current State of LED
 }
 void changeStateGREEN_LED()
 {
-  digitalWrite(GREEN_LED, !(digitalRead(GREEN_LED)));  //Invert Current State of LED
+  digitalWrite(LED_GREEN, !(digitalRead(LED_GREEN)));  //Invert Current State of LED
 }

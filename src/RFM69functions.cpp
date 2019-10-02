@@ -295,7 +295,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
   }
   inInterrupt = true;
 
-  digitalWrite(BLUE_LED, HIGH);
+  digitalWrite(LED_BLUE, HIGH);
 
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
 
@@ -428,9 +428,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       if (err=="CRC ERR") {
         Serial.println(err);
         status["error"] = "CRC Error";
-        digitalWrite(RED_LED, HIGH);
+        digitalWrite(LED_RED, HIGH);
         delay(500);
-        digitalWrite(RED_LED, LOW);
+        digitalWrite(LED_RED, LOW);
       }
       else {
         status["error"] = "";
@@ -452,7 +452,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     unselect();
     setMode(RF69_MODE_RX);
   }
-  digitalWrite(BLUE_LED, LOW);
+  digitalWrite(LED_BLUE, LOW);
 
   //Serial.println("Int done");
   inInterrupt = false;
