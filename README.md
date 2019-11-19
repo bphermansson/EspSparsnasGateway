@@ -98,13 +98,19 @@ In Home Assistant the sensors can look like this:
 ```
 \#Sparnas energy monitor
   - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
-    name: "House energy usage"
+    state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House power usage"
     unit_of_measurement: "W"
-    value_template: '{{ float(value_json.power) | round(0)  }}'
-
+    value_template: '{{ float(value_json.watt) | round(0)  }}'
+    
   - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
+    state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House energy usage"
+    unit_of_measurement: "kWh"
+    value_template: '{{ float(value_json.total) | round(0)  }}'
+    
+  - platform: mqtt
+    state_topic: "EspSparsnasGateway/valuesV2"
     name: "House energy meter batt"
     unit_of_measurement: "%"
     value_template: '{{ float(value_json.battery) }}'
@@ -115,6 +121,7 @@ We then get these sensors:
 ```
 -sensor.house_energy_meter_batt
 -sensor.house_energy_usage
+-sensor.house_power_usage
 ```
 
 The result can be seen in SparsnasHass.png.
