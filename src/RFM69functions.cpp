@@ -19,6 +19,7 @@ static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
 
 static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
+static const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 static String mqttMess;
 
 extern PubSubClient mClient;
@@ -296,7 +297,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
   }
   inInterrupt = true;
 
-  digitalWrite(BLUE_LED, HIGH);
+  //digitalWrite(LED_BLUE, HIGH);
 
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
 
@@ -359,6 +360,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       #ifdef DEBUG
         Serial.println("Valid package received!");
       #endif
+      analogWrite(LED_BLUE, LED_BLUE_BRIGHTNESS);
 
       gettimeofday(&tv, nullptr);
       clock_gettime(0, &tp);
@@ -429,9 +431,10 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       if (err=="CRC ERR") {
         Serial.println(err);
         status["error"] = "CRC Error";
-        digitalWrite(RED_LED, HIGH);
+        analogWrite(LED_RED, LED_RED_BRIGHTNESS);
+        mClient.publish((char*) String(mqtt_debug_topic).c_str(), (char*) output.c_str());
         delay(500);
-        digitalWrite(RED_LED, LOW);
+        analogWrite(LED_RED, 0);
       }
       else {
         status["error"] = "";
@@ -448,13 +451,17 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
       mqttMess = "";
       serializeJson(status, mqttMess);
-      mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
-      //mqttpub(String(mqtt_status_topic), "Data", mqttMess, mqttMess.length());
+      
+      if (status["error"] == "") {
+        mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
+        //mqttpub(String(mqtt_status_topic), "Data", mqttMess, mqttMess.length());
+      }
+      analogWrite(LED_BLUE, 0);
     }
     unselect();
     setMode(RF69_MODE_RX);
   }
-  digitalWrite(BLUE_LED, LOW);
+  //digitalWrite(LED_BLUE, LOW);
 
   //Serial.println("Int done");
   inInterrupt = false;

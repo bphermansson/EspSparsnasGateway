@@ -1,6 +1,7 @@
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
+
   #define DEBUG 1
 
   // Set this to the value of your energy meter
@@ -8,24 +9,29 @@
   // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
   // Set SENSOR_ID to the last six digits, ie '643654'.
   #define SENSOR_ID 643654
-  #define FREQUENCY 868000000;
+  #define FREQUENCY 867987500
 
   // Settings for the Mqtt broker:
-  #define MQTT_USERNAME "mqtt_user"
-  #define MQTT_PASSWORD "mqtt_pass"
-  #define MQTT_SERVER "192.168.1.190"
+  #define MQTT_USERNAME "YOUR_MQTT_USERNAME"
+  #define MQTT_PASSWORD "YOUR_MQTT_PASSWORD"
+  #define MQTT_SERVER "YOUR_MQTT_SERVER_IP"
   #define MQTT_PORT 1883
 
   // WiFi settings
-  #define WIFISSID "wifi_user"
-  #define WIFIPASSWORD "wifi_pass"
+  #define WIFISSID "YOUR_WIFI_SSID"
+  #define WIFIPASSWORD "YOUR_WIFI_PASSWORD"
 
   #define APPNAME "EspSparsnasGateway"
   #define NTPSERVERNAME "pool.ntp.org"
-  #define LOCALTZ "CET-1CEST,M3.5.0,M10.5.0/3"
+  #define LOCALTZ "CET-1CEST,M3.5.0,M10.5.0/3"  // Stockholm
   #define SERIALSPEED 115200
 
-  #define RED_LED D0
-  #define GREEN_LED D3
-  #define BLUE_LED D2
+  #define LED_RED D0
+  #define LED_GREEN D3
+  #define LED_BLUE D2
+
+  #define LED_RED_BRIGHTNESS 150      // 0-255 
+  #define LED_GREEN_BRIGHTNESS 25     // 0-255
+  #define LED_BLUE_BRIGHTNESS 255     // 0-255
+
 #endif
