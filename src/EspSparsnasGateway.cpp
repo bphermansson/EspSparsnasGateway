@@ -23,7 +23,7 @@
 #define _interruptNum 5 // = ESP8266 GPIO5
 
 WiFiClient wClient;
-MQTTClient mClient;
+MQTTClient mClient = MQTTClient(256);
 const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
 const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 

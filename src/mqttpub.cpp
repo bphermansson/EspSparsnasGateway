@@ -9,5 +9,5 @@ bool mqttpub(String topic, String subject, String mess, int size) {
   String mqttMess;
   status[subject] = mess;
   serializeJson(status, mqttMess);
-  mClient.publish(topic, mqttMess);
+  return mClient.publish(topic, mqttMess);
 }

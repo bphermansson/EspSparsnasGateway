@@ -6,8 +6,7 @@
 #include <ArduinoJson.h>
 #include <RFM69registers.h>
 
-static WiFiClient wClient;
-static MQTTClient mClient;
+extern MQTTClient mClient;
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -423,7 +422,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       output += "Vcc: " + String(vcc) + "mV";
       Serial.println(output);
 
-      const size_t capacity = JSON_OBJECT_SIZE(8);
+      const size_t capacity = JSON_OBJECT_SIZE(9);
       DynamicJsonDocument status(capacity);
       if (err=="CRC ERR") {
         Serial.println(err);
