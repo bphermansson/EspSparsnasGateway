@@ -437,13 +437,13 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       }
 
       status["seq"] = seq;
-      status["timestamp"] = String(now);
+      status["timestamp"] = now;
       status["watt"] = float(watt);
       status["total"] = float(pulse) / float(PULSES_PER_KWH);
       status["battery"] = battery;
-      status["rssi"] = String(srssi);
-      status["power"] = String(power);
-      status["pulse"] = String(pulse);
+      status["rssi"] = srssi;
+      status["power"] = power;
+      status["pulse"] = pulse;
 
       String mqttMess;
       serializeJson(status, mqttMess);
