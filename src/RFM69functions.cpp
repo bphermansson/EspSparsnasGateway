@@ -426,14 +426,14 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       output += "Vcc: " + String(vcc) + "mV";
       Serial.println(output);
 
-      const size_t capacity = JSON_OBJECT_SIZE(8);
+      const size_t capacity = JSON_OBJECT_SIZE(9);
       DynamicJsonDocument status(capacity);
       if (err=="CRC ERR") {
         Serial.println(err);
         status["error"] = "CRC Error";
         analogWrite(LED_RED, LED_RED_BRIGHTNESS);
         mClient.publish((char*) String(mqtt_debug_topic).c_str(), (char*) output.c_str());
-        delay(500);
+        delay(300);
         analogWrite(LED_RED, 0);
       }
       else {
@@ -441,27 +441,25 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       }
 
       status["seq"] = seq;
-      status["timestamp"] = String(now);
+      status["timestamp"] = now;
       status["watt"] = float(watt);
       status["total"] = float(pulse) / float(PULSES_PER_KWH);
       status["battery"] = battery;
-      status["rssi"] = String(srssi);
-      status["power"] = String(power);
-      status["pulse"] = String(pulse);
+      status["rssi"] = srssi;
+      status["power"] = power;
+      status["pulse"] = pulse;
 
       mqttMess = "";
       serializeJson(status, mqttMess);
       
       if (status["error"] == "") {
         mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
-        //mqttpub(String(mqtt_status_topic), "Data", mqttMess, mqttMess.length());
       }
       analogWrite(LED_BLUE, 0);
     }
     unselect();
     setMode(RF69_MODE_RX);
   }
-  //digitalWrite(LED_BLUE, LOW);
 
   //Serial.println("Int done");
   inInterrupt = false;
