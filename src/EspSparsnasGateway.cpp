@@ -8,7 +8,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
+#include <PubSubClient.h>
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <Ticker.h>
@@ -23,7 +23,8 @@
 #define _interruptNum 5 // = ESP8266 GPIO5
 
 WiFiClient wClient;
-MQTTClient mClient;
+PubSubClient mClient(wClient);
+
 const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
 const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 
@@ -41,7 +42,7 @@ uint32_t isendid;
 const char compile_date[] = __DATE__ " " __TIME__;
 
 void changeStateLED_RED();
-void changeStateGREEN_LED();
+void changeStateLED_GREEN();
 
 /* ----------------------------------------------------*/
 
@@ -56,19 +57,19 @@ void setup() {
   pinMode (LED_BLUE, OUTPUT);
 
   // Test leds
-  digitalWrite(LED_RED, HIGH);
+  analogWrite(LED_RED, LED_RED_BRIGHTNESS);
   delay(500);
-  digitalWrite(LED_GREEN, HIGH);
+  analogWrite(LED_GREEN, LED_GREEN_BRIGHTNESS);
   delay(500);
-  digitalWrite(LED_BLUE, HIGH);
-  delay(500);
+  analogWrite(LED_BLUE, LED_BLUE_BRIGHTNESS);
+  delay(1500);
 
   digitalWrite(LED_RED, LOW);
   digitalWrite(LED_GREEN, LOW);
   digitalWrite(LED_BLUE, LOW);
   delay(500);
 
-  blinkerGreen.attach(0.5, changeStateGREEN_LED);
+  blinkerGreen.attach(0.5, changeStateLED_GREEN);
 
   #ifdef DEBUG
      Serial.println(F("Debug on"));
@@ -89,7 +90,7 @@ void setup() {
   WiFi.hostname(APPNAME);
 
   // Setup Mqtt connection
-  mClient.begin(MQTT_SERVER, wClient);
+  mClient.setServer(MQTT_SERVER, MQTT_PORT);
   reconnect();
 
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
@@ -159,13 +160,16 @@ void setup() {
 
 // All ok
   blinkerGreen.detach();
-  digitalWrite(LED_GREEN, HIGH);
+  analogWrite(LED_GREEN, LED_GREEN_BRIGHTNESS);
 }
 
 void loop() {
   ArduinoOTA.handle();
+  if (!mClient.connected()) {
+    reconnect();
+  }
   mClient.loop();
-
+  //delay(10);
   // Note! This routine is necessary, don't remove it!
   if (receiveDone()) {
   }
@@ -174,7 +178,7 @@ void changeStateLED_RED()
 {
   digitalWrite(LED_RED, !(digitalRead(LED_RED)));  //Invert Current State of LED
 }
-void changeStateGREEN_LED()
+void changeStateLED_GREEN()
 {
   digitalWrite(LED_GREEN, !(digitalRead(LED_GREEN)));  //Invert Current State of LED
 }

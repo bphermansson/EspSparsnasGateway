@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
-extern MQTTClient mClient;
+#include <PubSubClient.h>
 #include <settings.h>
+
+extern PubSubClient mClient;
 
 void reconnect() {
   #ifdef DEBUG
