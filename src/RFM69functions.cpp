@@ -1,13 +1,11 @@
 #include "settings.h"
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <MQTT.h> // MQTT by Joel Gaehwiler
+#include <PubSubClient.h>
+#include <mqttpub.h>
 #include <SPI.h>
 #include <ArduinoJson.h>
 #include <RFM69registers.h>
-
-static WiFiClient wClient;
-static MQTTClient mClient;
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -21,6 +19,10 @@ static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
 
 static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
+static const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
+static String mqttMess;
+
+extern PubSubClient mClient;
 
 #define _interruptNum 5
 static volatile bool inInterrupt = false; // Fake Mutex
@@ -358,6 +360,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       #ifdef DEBUG
         Serial.println("Valid package received!");
       #endif
+      analogWrite(LED_BLUE, LED_BLUE_BRIGHTNESS);
 
       gettimeofday(&tv, nullptr);
       clock_gettime(0, &tp);
@@ -423,31 +426,36 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       output += "Vcc: " + String(vcc) + "mV";
       Serial.println(output);
 
-      const size_t capacity = JSON_OBJECT_SIZE(8);
+      const size_t capacity = JSON_OBJECT_SIZE(9);
       DynamicJsonDocument status(capacity);
       if (err=="CRC ERR") {
         Serial.println(err);
         status["error"] = "CRC Error";
-        digitalWrite(LED_RED, HIGH);
-        delay(500);
-        digitalWrite(LED_RED, LOW);
+        analogWrite(LED_RED, LED_RED_BRIGHTNESS);
+        mClient.publish((char*) String(mqtt_debug_topic).c_str(), (char*) output.c_str());
+        delay(300);
+        analogWrite(LED_RED, 0);
       }
       else {
         status["error"] = "";
       }
 
       status["seq"] = seq;
-      status["timestamp"] = String(now);
+      status["timestamp"] = now;
       status["watt"] = float(watt);
       status["total"] = float(pulse) / float(PULSES_PER_KWH);
       status["battery"] = battery;
-      status["rssi"] = String(srssi);
-      status["power"] = String(power);
-      status["pulse"] = String(pulse);
+      status["rssi"] = srssi;
+      status["power"] = power;
+      status["pulse"] = pulse;
 
-      String mqttMess;
+      mqttMess = "";
       serializeJson(status, mqttMess);
-      mClient.publish(mqtt_status_topic, mqttMess);
+
+      if (status["error"] == "") {
+        mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
+      }
+      analogWrite(LED_BLUE, 0);
     }
     unselect();
     setMode(RF69_MODE_RX);
