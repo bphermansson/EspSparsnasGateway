@@ -389,10 +389,12 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       int battery = TEMPDATA[17]; // Battery level, 0-100.
 
       #ifdef DEBUG
-        Serial.print("Power, binary: ");
-        Serial.println((TEMPDATA[11] << 8 | TEMPDATA[12]));
+        Serial.println("Current effect usage, hex");
+        Serial.print(TEMPDATA[11], HEX);
+        Serial.print(" ");
+        Serial.println(TEMPDATA[12], HEX);
       #endif
-  
+
       // This is how to convert the 'effect' field into Watt:
       // float watt =  (float)((3600000 / PULSES_PER_KWH) * 1024) / (effect);  ( 11:uint16_t effect;) This equals "power" in this code.
 
