@@ -16,10 +16,9 @@
 
 static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
+static volatile uint8_t TEMPDATA2[21];
 static volatile uint8_t DATALEN;
 
-static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
-static const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 static String mqttMess;
 
 extern PubSubClient mClient;
@@ -38,7 +37,9 @@ uint8_t PAYLOADLENGTH = 20;
 
 static volatile uint8_t _mode;
 uint8_t enc_key[5];
+uint8_t enc_key2[5];
 uint16_t rssi = 0;
+uint8_t sparsnas_nr = 0;
 
 extern timeval tv;
 extern timespec tp;
@@ -322,32 +323,61 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     // CRC is done BEFORE decrypting message
     uint16_t crc = crc16(TEMPDATA, 18);
     uint16_t packet_crc = TEMPDATA[18] << 8 | TEMPDATA[19];
+    for (uint8_t i = 0; i < 20; i++) {
+      TEMPDATA2[i] = TEMPDATA[i];
+    }
 
     #ifdef DEBUG
       Serial.println(F("Got rf data"));
     #endif
 
-    const uint32_t sensor_id_sub = SENSOR_ID - 0x5D38E8CB;
+    const uint32_t sensor_id_sub = SENSOR_ID_1 - 0x5D38E8CB;
+    const uint32_t sensor_id_sub2 = SENSOR_ID_2 - 0x5D38E8CB;
     enc_key[0] = (uint8_t)(sensor_id_sub >> 24);
     enc_key[1] = (uint8_t)(sensor_id_sub);
     enc_key[2] = (uint8_t)(sensor_id_sub >> 8);
     enc_key[3] = 0x47;
     enc_key[4] = (uint8_t)(sensor_id_sub >> 16);
 
+    enc_key2[0] = (uint8_t)(sensor_id_sub2 >> 24);
+    enc_key2[1] = (uint8_t)(sensor_id_sub2);
+    enc_key2[2] = (uint8_t)(sensor_id_sub2 >> 8);
+    enc_key2[3] = 0x47;
+    enc_key2[4] = (uint8_t)(sensor_id_sub2 >> 16);
+
     // Decrypt message
     for (size_t i = 0; i < 13; i++) {
       TEMPDATA[5 + i] = TEMPDATA[5 + i] ^ enc_key[i % 5];
+      TEMPDATA2[5 + i] = TEMPDATA2[5 + i] ^ enc_key2[i % 5];
     }
 
     uint32_t rcv_sensor_id = TEMPDATA[5] << 24 | TEMPDATA[6] << 16 | TEMPDATA[7] << 8 | TEMPDATA[8];
-
+    uint32_t rcv_sensor_id_2 = TEMPDATA2[5] << 24 | TEMPDATA2[6] << 16 | TEMPDATA2[7] << 8 | TEMPDATA2[8];
+    sparsnas_nr = 0;
     // Bug fix from https://github.com/strigeus/sparsnas_decoder/pull/7/files
     // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
     // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
-    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
-      #ifdef DEBUG
+    if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID_1 & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID_1) {
+        if (TEMPDATA2[0] != 0x11 || TEMPDATA2[1] != (SENSOR_ID_2 & 0xFF) || TEMPDATA2[3] != 0x07 || rcv_sensor_id_2 != SENSOR_ID_2) {
+          #ifdef DEBUG
+             output = "";
+             Serial.println("Bad packet_2!");
+             for (uint8_t i = 0; i < 20; i++) {
+                if (TEMPDATA[i]<0x10) {Serial.print("0");}
+                Serial.print(TEMPDATA[i],HEX);
+                Serial.print(" ");
+              }
+             Serial.println(" "); 
+          #endif
+        } else {
+           for (uint8_t i = 0; i < 20; i++) {
+           TEMPDATA[i] = TEMPDATA2[i];
+           sparsnas_nr = 1;
+         }
+        }     
+       #ifdef DEBUG
         output = "";
-        Serial.println("Bad packet!");
+        Serial.println("Bad packet_1!");
         for (uint8_t i = 0; i < 20; i++) {
            if (TEMPDATA[i]<0x10) {Serial.print("0");}
            Serial.print(TEMPDATA[i],HEX);
@@ -355,11 +385,14 @@ void  ICACHE_RAM_ATTR interruptHandler() {
         }
         Serial.println(" ");
 
-      #endif
+        #endif
     } else {
       #ifdef DEBUG
-        Serial.println("Valid package received!");
+        if (sparsnas_nr == 0) {Serial.println("Valid package 1 received!");}
+        if (sparsnas_nr == 1) {Serial.println("Valid package 2 received!");}
       #endif
+    }
+    if (sparsnas_nr == 0  || sparsnas_nr == 1) {
       analogWrite(LED_BLUE, LED_BLUE_BRIGHTNESS);
 
       gettimeofday(&tv, nullptr);
@@ -419,7 +452,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       #endif
 
       // Prepare for output
-      output = "Seq " + String(seq) + ": ";
+      if (sparsnas_nr == 0) {output = "Sparsnas 1: ";}
+      else {output = "Sparsnas 2: ";}
+      output += "Seq " + String(seq) + ": ";
       output += String(now) + ", ";
       output += String(watt) + " W, total: ";
       output += String(pulse / PULSES_PER_KWH) + " kWh, battery ";
@@ -439,7 +474,11 @@ void  ICACHE_RAM_ATTR interruptHandler() {
         Serial.println(err);
         status["error"] = "CRC Error";
         analogWrite(LED_RED, LED_RED_BRIGHTNESS);
-        mClient.publish((char*) String(mqtt_debug_topic).c_str(), (char*) output.c_str());
+        if (sparsnas_nr == 0) {
+          mClient.publish((char*) String(MQTT_DEBUG_TOPIC).c_str(), (char*) output.c_str());
+        } else {
+          mClient.publish((char*) String(MQTT_DEBUG_TOPIC_2).c_str(), (char*) output.c_str());
+        }
         delay(300);
         analogWrite(LED_RED, 0);
       }
@@ -460,7 +499,12 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       serializeJson(status, mqttMess);
 
       if (status["error"] == "") {
-        mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
+//        mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
+        if (sparsnas_nr == 0) {
+          mClient.publish((char*) String(MQTT_STATUS_TOPIC_1).c_str(), (char*) mqttMess.c_str());
+        } else {
+          mClient.publish((char*) String(MQTT_STATUS_TOPIC_2).c_str(), (char*) mqttMess.c_str());
+        }
       }
       analogWrite(LED_BLUE, 0);
     }

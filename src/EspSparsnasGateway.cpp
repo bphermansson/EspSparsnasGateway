@@ -19,14 +19,13 @@
 #include <mqttpub.h>
 #include <ntp.h>
 #include <settings.h>
+#include <cstring>
+#include <string>
 
 #define _interruptNum 5 // = ESP8266 GPIO5
 
 WiFiClient wClient;
 PubSubClient mClient(wClient);
-
-const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
-const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -39,6 +38,7 @@ String mqttMess;
 String freq, sendid;
 uint32_t ifreq;
 uint32_t isendid;
+uint32_t isendid2;
 const char compile_date[] = __DATE__ " " __TIME__;
 
 void changeStateLED_RED();
@@ -48,7 +48,8 @@ void changeStateLED_GREEN();
 
 void setup() {
   ifreq = FREQUENCY;
-  isendid = SENSOR_ID;
+  isendid = SENSOR_ID_1;
+  isendid2 = SENSOR_ID_2;
   Serial.begin(SERIALSPEED);
   Serial.println("Welcome to " + String(APPNAME));
 
@@ -94,13 +95,14 @@ void setup() {
   reconnect();
 
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
-  mqttMess = mqttMess + ".\nMqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
+  // mqttMess = mqttMess + ".\nMqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
+  mqttMess = mqttMess + ".\nMqtt topics: " + MQTT_STATUS_TOPIC_1 + ", " + MQTT_DEBUG_TOPIC + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
-  Serial.println(mqtt_status_topic);
+  Serial.println(MQTT_STATUS_TOPIC_1);
 
 
   // Hostname defaults to esp8266-[ChipID], change this
@@ -131,13 +133,18 @@ void setup() {
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
   mqttMess = "Settings: \nSenderid: " + String(isendid) + "\nFrequency: " + String(ifreq);
     #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
+  mqttMess = "Settings: \nSenderid: " + String(isendid2) + "\nFrequency: " + String(ifreq);
+    #ifdef DEBUG
+    Serial.println(mqttMess);
+  #endif
+  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
   if (!initialize(ifreq)) {
     mqttMess =  "Unable to initialize the radio. Exiting.";
@@ -145,7 +152,7 @@ void setup() {
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
-    mqttpub(String(mqtt_debug_topic), "Radio", mqttMess, mqttMess.length());
+    mqttpub(String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
     while (1) {
       yield();
     }
@@ -155,7 +162,7 @@ void setup() {
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
-    mqttpub(String(mqtt_debug_topic), "Radio", mqttMess, mqttMess.length());
+    mqttpub(String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
   }
 
 // All ok
