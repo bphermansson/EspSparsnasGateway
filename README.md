@@ -1,4 +1,4 @@
-# EspSparsnasGateway
+# EspSparsnasGateway with second transmitter id
 
 This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor
 sends encoded data by radio to a control panel. This device collects the data
@@ -28,11 +28,14 @@ The schematic shows a Nodemcu, but you can use another ESP8266-based device if y
 
 ```
 NodeMcu - Esp12
-D1	- Gpio5
-D5	- Gpio14
-D6	- Gpio12
-D7	- Gpio13
-D8	- Gpio15
+D0 - Gpio16 - LED red
+D1	- Gpio5  - DIO0
+D2 - Gpio4  - LED green
+D3 - Gpio0  - LED blue
+D5	- Gpio14 - SCK
+D6	- Gpio12 - MISO
+D7	- Gpio13 - MOSI
+D8	- Gpio15 - EN
 ```
 
 ![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
@@ -50,11 +53,20 @@ https://www.lawicel-shop.se/rfm69hcw-transceiver-bob
 
 C2 - Capacitor 100nF
 se: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-100nf-10-pack
-en: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-100nf-10-pack
 
 C1 - Capacitor 1000uF
-se: https://www.lawicel-shop.se/components/komponenter/capacitors/capacitor-1000uf-50v
-en: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-50v
+se: https://www.lawicel-shop.se/elektronik/komponenter/kondensatorer/capacitor-1000uf-50v
+
+L1 - Inductor 100uH se: https://www.electrokit.com/drossel-100uh.42127
+
+D1 - LED - red se: https://www.electrokit.com/produkt/led-3mm-rod-diffus-3500mcd/
+
+D2 - LED - green se: https://www.electrokit.com/produkt/led-3mm-gron-diffus-3500mcd/
+
+D3 - LED - blue se: https://www.electrokit.com/produkt/led-3mm-bla-diffus-3500mcd/
+
+R1 -R3 - Resistor 220 ohm se: https://www.electrokit.com/produkt/motstand-metallfilm-0-125w-1-220ohm-220r/
+
 
 ## Hardware hacks to ensure good RF performance.
 Also add two capacitors, 330-470uF and 100nF, to Vin in and Gnd for stability.
