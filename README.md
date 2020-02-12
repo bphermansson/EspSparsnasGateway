@@ -29,10 +29,10 @@ The schematic shows a Nodemcu, but you can use another ESP8266-based device if y
 ```
 NodeMcu - Esp12
 
-D0	- Gpio5  - Gpio16 - LED red
+D0	- Gpio6 - LED red
 D1	- Gpio5  - DIO0
 D2	- Gpio4  - LED green
-31	- Gpio0  - LED blue
+D3	- Gpio0  - LED blue
 D5	- Gpio14 - SCK
 D6	- Gpio12 - MISO
 D7	- Gpio13 - MOSI
