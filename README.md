@@ -36,7 +36,7 @@ D5	- Gpio14 - SCK
 D6	- Gpio12 - MISO
 D7	- Gpio13 - MOSI
 D8	- Gpio15 - EN
-```
+``` 
 
 ![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
 
