@@ -6,6 +6,8 @@
 #include <SPI.h>
 #include <ArduinoJson.h>
 #include <RFM69registers.h>
+#include <string.h>
+#include <iostream>
 
 #define RF69_MODE_SLEEP 0      // XTAL OFF
 #define RF69_MODE_STANDBY 1    // XTAL ON
@@ -19,6 +21,10 @@ static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t TEMPDATA2[21];
 static volatile uint8_t DATALEN;
 
+static const char* mqtt_status_topic1 = APPNAME "/Sensor1" MQTT_STATUS_TOPIC;
+static const char* mqtt_debug_topic1 = APPNAME "/Sensor1" MQTT_DEBUG_TOPIC;
+static const char* mqtt_status_topic2 = APPNAME "/Sensor2" MQTT_STATUS_TOPIC;
+static const char* mqtt_debug_topic2 = APPNAME "/Sensor1" MQTT_DEBUG_TOPIC;
 static String mqttMess;
 
 extern PubSubClient mClient;
@@ -475,9 +481,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
         status["error"] = "CRC Error";
         analogWrite(LED_RED, LED_RED_BRIGHTNESS);
         if (sparsnas_nr == 0) {
-          mClient.publish((char*) String(MQTT_DEBUG_TOPIC).c_str(), (char*) output.c_str());
+          mClient.publish((char*) String(mqtt_debug_topic1).c_str(), (char*) output.c_str());
         } else {
-          mClient.publish((char*) String(MQTT_DEBUG_TOPIC_2).c_str(), (char*) output.c_str());
+          mClient.publish((char*) String(mqtt_debug_topic2).c_str(), (char*) output.c_str());
         }
         delay(300);
         analogWrite(LED_RED, 0);
@@ -501,9 +507,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       if (status["error"] == "") {
 //        mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
         if (sparsnas_nr == 0) {
-          mClient.publish((char*) String(MQTT_STATUS_TOPIC_1).c_str(), (char*) mqttMess.c_str());
+          mClient.publish((char*) String(mqtt_status_topic1).c_str(), (char*) mqttMess.c_str());
         } else {
-          mClient.publish((char*) String(MQTT_STATUS_TOPIC_2).c_str(), (char*) mqttMess.c_str());
+          mClient.publish((char*) String(mqtt_status_topic2).c_str(), (char*) mqttMess.c_str());
         }
       }
       analogWrite(LED_BLUE, 0);

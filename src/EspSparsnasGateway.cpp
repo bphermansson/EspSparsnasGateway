@@ -45,6 +45,8 @@ void changeStateLED_RED();
 void changeStateLED_GREEN();
 
 /* ----------------------------------------------------*/
+  String mqtt_status = String(APPNAME) + "/sensor1" + String(MQTT_STATUS_TOPIC);
+  String mqtt_debug = String(APPNAME) + "/sensor1" + String(MQTT_DEBUG_TOPIC);
 
 void setup() {
   ifreq = FREQUENCY;
@@ -93,16 +95,15 @@ void setup() {
   // Setup Mqtt connection
   mClient.setServer(MQTT_SERVER, MQTT_PORT);
   reconnect();
-
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
   // mqttMess = mqttMess + ".\nMqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
-  mqttMess = mqttMess + ".\nMqtt topics: " + MQTT_STATUS_TOPIC_1 + ", " + MQTT_DEBUG_TOPIC + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
+  mqttMess = mqttMess + ".\nMqtt topics: " + String(APPNAME) + String(MQTT_STATUS_TOPIC) + ", " + String(APPNAME) + String(MQTT_DEBUG_TOPIC) + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
-  Serial.println(MQTT_STATUS_TOPIC_1);
+  Serial.println(String(APPNAME) + MQTT_STATUS_TOPIC);
 
 
   // Hostname defaults to esp8266-[ChipID], change this
@@ -133,18 +134,18 @@ void setup() {
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
   mqttMess = "Settings: \nSenderid: " + String(isendid) + "\nFrequency: " + String(ifreq);
     #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
   mqttMess = "Settings: \nSenderid: " + String(isendid2) + "\nFrequency: " + String(ifreq);
     #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
-  mqttpub(String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
+  mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Device", mqttMess, mqttMess.length());
 
   if (!initialize(ifreq)) {
     mqttMess =  "Unable to initialize the radio. Exiting.";
@@ -152,7 +153,7 @@ void setup() {
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
-    mqttpub(String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
+    mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
     while (1) {
       yield();
     }
@@ -162,7 +163,7 @@ void setup() {
     #ifdef DEBUG
       Serial.println(mqttMess);
     #endif
-    mqttpub(String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
+    mqttpub(String(APPNAME) + String(MQTT_DEBUG_TOPIC), "Radio", mqttMess, mqttMess.length());
   }
 
 // All ok
