@@ -24,6 +24,13 @@ The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different dev
 
 The connection for the RFM69 is hardcoded. This is standard Spi connections set in the spi-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon.
 
+## Using three leds to indicate status
+
+    One for power, blinks on boot and steady when all is up and running.
+    One for error indication.
+    One that blinks when data is received.
+
+
 The schematic shows a Nodemcu, but you can use another ESP8266-based device if you want (except the Esp-01). Use these pin mappings:
 
 ```
