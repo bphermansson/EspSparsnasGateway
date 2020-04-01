@@ -38,14 +38,13 @@ uint8_t PAYLOADLENGTH = 20;
 
 static volatile uint8_t _mode;
 uint8_t enc_key[5];
-uint16_t rssi = 0;
 
 extern timeval tv;
 extern timespec tp;
 extern time_t now;
 extern "C" int clock_gettime(clockid_t unused, struct timespec *tp);
 
-uint16_t readRSSI();
+int16_t readRSSI();
 
 void  ICACHE_RAM_ATTR interruptHandler();
 
@@ -136,7 +135,7 @@ void receiveBegin() {
 
 // get the received signal strength indicator (RSSI)
 //uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a crash...
-uint16_t readRSSI() {
+int16_t readRSSI() {
 /*  if (forceTrigger) {
     // RSSI trigger not needed if DAGC is in continuous mode
     writeReg(REG_RSSICONFIG, RF_RSSI_START);
@@ -147,10 +146,9 @@ uint16_t readRSSI() {
       yield();
     }
   }*/
-  rssi = -readReg(REG_RSSIVALUE);
+  int16_t rssi = -readReg(REG_RSSIVALUE);
   #ifdef DEBUG
-    Serial.print("rssi: ");
-    Serial.println(rssi);
+    Serial.println("rssi: " + String(rssi) + "dbi");
   #endif
   return rssi;
 }
@@ -302,10 +300,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)) {
 
     // Read Rssi
-    char crssi[25];
-    int16_t srssi;
-    srssi = readRSSI();
-    dtostrf(srssi, 16, 0, crssi);
+    int16_t srssi = readRSSI();
 
     setMode(RF69_MODE_STANDBY);
     DATALEN = 0;
