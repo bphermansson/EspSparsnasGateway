@@ -6,7 +6,7 @@
 extern PubSubClient mClient;
 const String sensor_id = String(SENSOR_ID);
 const String availability_topic = APPNAME "/" + sensor_id + "/availability";
-const String state_topic = APPNAME "/" + sensor_id + "/state"; 
+const String state_topic = APPNAME "/" + sensor_id + "/state";
 const String discovery_topic = "home/sensor/" APPNAME "_" + sensor_id;
 
 bool send_discovery_message(const char* measurement, const char* value_template) {
@@ -26,7 +26,7 @@ bool send_discovery_message(const char* measurement, const char* value_template)
   config["unique_id"] = (APPNAME "_") + sensor_id + "_" + measurement;
   config["state_topic"] = state_topic;
   config["json_attributes_topic"] = state_topic;
-  config["availability_topic"] = availability_topic.c_str(); 
+  config["availability_topic"] = availability_topic.c_str();
   config["value_template"] = value_template;
 
   String ret;
@@ -70,7 +70,7 @@ void reconnect() {
     #ifdef DEBUG
       Serial.print("Attempting MQTT connection...");
     #endif
-    if (mClient.connect(APPNAME, MQTT_USERNAME, MQTT_PASSWORD)) {
+    if (mClient.connect(APPNAME, MQTT_USERNAME, MQTT_PASSWORD, availability_topic.c_str(), 0, true, "offline")) {
       #ifdef DEBUG
         String buf = "Connected to Mqtt broker as " + String(APPNAME);
         Serial.println(buf);
@@ -79,7 +79,9 @@ void reconnect() {
       send_discovery_message("W", "{{ value_json.watt | round(1) }}");
       send_discovery_message("kWh", "{{ value_json.total | round(1) }}");
 
+      mClient.publish(availability_topic.c_str(), "online", true);
 
+      return;
     } else {
       Serial.print("Mqtt connection failed,");
       Serial.println(" try again in 5 seconds");
