@@ -4,7 +4,7 @@
 
 extern PubSubClient mClient;
 
-bool mqttpub(String topic, String subject, String mess, int size) {
+void mqttpub(String topic, String subject, String mess, int size) {
   const size_t capacity = JSON_OBJECT_SIZE(size);
   DynamicJsonDocument status(capacity);
   String mqttMess;
