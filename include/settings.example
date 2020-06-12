@@ -6,25 +6,21 @@
    This gives much more info about what's happening
    to the serial port.
   */
-  // #define DEBUG 1
+  //#define DEBUG 1
 
   // Set this to the value of your energy meter
   #define PULSES_PER_KWH 1000
   // The code from the Sparnas tranmitter. Under the battery lid there's a sticker with digits like '400 643 654'.
   // Set SENSOR_ID to the last six digits, ie '643654'.
-  #define SENSOR_ID_1 639176
-  #define SENSOR_ID_2 612470
-  #define FREQUENCY 867998016
-  // #define FREQUENCY 868000000
+  #define SENSOR_ID 643654
+  #define FREQUENCY 867987500
 
   // Settings for the Mqtt broker:
   #define MQTT_USERNAME "YOUR_MQTT_USERNAME"
   #define MQTT_PASSWORD "YOUR_MQTT_PASSWORD"
   #define MQTT_SERVER "YOUR_MQTT_SERVER_IP"
   #define MQTT_PORT 1883
-  #define MQTT_DEBUG_TOPIC "/debug"
-  #define MQTT_STATUS_TOPIC "/values"
- 
+
   // WiFi settings
   #define WIFISSID "YOUR_WIFI_SSID"
   #define WIFIPASSWORD "YOUR_WIFI_PASSWORD"
