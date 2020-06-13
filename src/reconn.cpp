@@ -7,7 +7,7 @@ extern PubSubClient mClient;
 const String sensor_id = String(SENSOR_ID);
 const String availability_topic = APPNAME "/" + sensor_id + "/availability";
 const String state_topic = APPNAME "/" + sensor_id + "/state";
-const String discovery_topic = "home/sensor/" APPNAME "_" + sensor_id;
+const String discovery_topic = DISCOVERY_PREFIX "/sensor/" APPNAME "_" + sensor_id;
 
 bool send_discovery_message(const char* measurement, const char* value_template) {
   DynamicJsonDocument device(JSON_OBJECT_SIZE(12));
@@ -31,9 +31,6 @@ bool send_discovery_message(const char* measurement, const char* value_template)
 
   String ret;
   serializeJson(config, ret);
-  //Serial.print("Discovery message ");
-  //Serial.print(strlen(ret.c_str()));
-  //Serial.println(ret.c_str());
 
   mClient.beginPublish(
     (String(discovery_topic) + "/" + measurement + "/config").c_str(),
@@ -62,9 +59,6 @@ void publish_mqtt(String topic, String message) {
 }
 
 void reconnect() {
-  #ifdef DEBUG
-    Serial.print("Reconnect");
-  #endif
   // Loop until we're reconnected
   while (!mClient.connected()) {
     #ifdef DEBUG
@@ -78,12 +72,9 @@ void reconnect() {
 
       send_discovery_message("W", "{{ value_json.watt | round(1) }}");
       send_discovery_message("kWh", "{{ value_json.total | round(1) }}");
-
       mClient.publish(availability_topic.c_str(), "online", true);
-
-      return;
     } else {
-      Serial.print("Mqtt connection failed,");
+      Serial.print("MQTT connection failed,");
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);

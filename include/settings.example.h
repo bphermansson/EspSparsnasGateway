@@ -20,6 +20,7 @@
   #define MQTT_PASSWORD "YOUR_MQTT_PASSWORD"
   #define MQTT_SERVER "YOUR_MQTT_SERVER_IP"
   #define MQTT_PORT 1883
+  #define DISCOVERY_PREFIX "homeassistant"
 
   // WiFi settings
   #define WIFISSID "YOUR_WIFI_SSID"
