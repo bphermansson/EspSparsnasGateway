@@ -66,7 +66,7 @@ void setup() {
 
   digitalWrite(LED_RED, LOW);
   digitalWrite(LED_GREEN, LOW);
-  digitalWrite(LED_BLUE, LOW);
+  digitalWrite(LED_BLUE, HIGH);
   delay(500);
 
   blinkerGreen.attach(0.5, changeStateLED_GREEN);
