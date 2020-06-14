@@ -40,7 +40,7 @@ Packages can be installed using the Arduino libs, see the [docs](https://www.ard
 Load the project files in Atom/VS Code with PlatformIO. Then copy the file `include/settings.example.h` to `include/settings.h`. Adjust the values in `settings.h` to fit your environment and save it. Upload to your hardware and enjoy :)
 
 ## Hardware
-The hardware used is a ESP8266-based wifi-enabled MCU. You can use different devices like a Wemos D1mini or a NodeMCU, but take care of the GPIO labels that can differ. The receiver is a RFM69HCW radio transciever (the RFMCW also works but note that it have a different pinout). I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the GND-connection next to the antenna connection, pointing down, opposite to the first wire.
+The hardware used is a ESP8266-based wifi-enabled MCU. You can use different devices like a Wemos D1mini or a NodeMCU, but take care of the GPIO labels that can differ. The receiver is a RFM69HCW radio transciever (the RFMCW also works but note that it have a different [pinout](https://github.com/bphermansson/EspSparsnasGateway/raw/master/refrence_doc/RFM69HC_D1mini.png)). I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the GND-connection next to the antenna connection, pointing down, opposite to the first wire.
 
 The connection for the RFM69 is hardcoded. This is standard SPI connections set in the SPI-library that can't be changed. See https://learn.sparkfun.com/tutorials/esp8266-thing-hookup-guide/using-the-arduino-addon.
 
@@ -55,7 +55,7 @@ The schematic shows a NodeMCU, but you can use another ESP8266-based device if y
 | EN/NSS |  5 | 7 | D8 | Gpio15 |
 | ANT    |  9|  1 | - | - |
 
-![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
+![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/refrence_doc/RFM69HCW_NodeMCU.png)
 
 Note! Adafruit modules requires a connection from RST to GND! (Ref: https://www.mysensors.org/build/connect_radio#wiring-the-rfm69-radio).
 
