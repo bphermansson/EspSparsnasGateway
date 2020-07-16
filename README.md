@@ -1,28 +1,29 @@
 # EspSparsnasGateway
 
-This is a Mqtt Gateway for Ikeas energy monitor Sparsnas. The monitor
+This is a MQTT Gateway for Ikeas energy monitor Sparsnas. The monitor
 sends encoded data by radio to a control panel. This device collects the data
-and sends it to Mqtt-enabled receivers in Json-format. Thus you need a Mqtt broker
-in your network and adjust the settings  in the ino-file:
-
-```
-// Settings for the Mqtt broker:
-#define MQTT_USERNAME "<username>"    // If used by the broker
-#define MQTT_PASSWORD "<password>"     //    -   *   -
-const char* mqtt_server = "192.168.1.79";  // Mqtt brokers IP
-```
+and sends it to MQTT-enabled receivers in json-format.
 
 The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad.
-This gives a CRC-error, the data is in this case not sent via Mqtt but printed via the serial port.
+This gives a CRC-error, the data is in this case not sent via MQTT but printed via the serial port.
 
-The data sent via Mqtt is in Json format and looks like this:
+The data sent via MQTT is in json format and looks like this:
 
+```json
+{
+    "error": "",
+    "seq": 28767,
+    "timestamp": 1592040611,
+    "watt": 1920,
+    "total": 15016,
+    "battery": 100,
+    "rssi": -123,
+    "power": 80,
+    "pulse": 150160049
+}
 ```
- {"seq":63009,"watt":5120,"total":5985,"battery":100,"rssi":"-136","power":"720","pulse":"5985167"}
 
-```
-
-The device uses two Mqtt topics to publish, EspSparsnasGateway/values and EspSparsnasGateway/debug.
+The device uses two Mqtt topics to publish, `EspSparsnasGateway/<sensor_id>/state` and `EspSparsnasGateway/debugV2`.
 
 ## Dependencies
 
@@ -36,7 +37,7 @@ This requires the following packages:
 Packages can be installed using the Arduino libs, see the [docs](https://www.arduino.cc/en/guide/libraries) for more info
 
 ## Using
-Load the project files in Atom/VS Code with PlatformIO. Then copy the file "include/settings.example" to "include/settings.h". Adjust the values in settings.h to fit your environment and save it. Upload to your hardware and enjoy :)
+Load the project files in Atom/VS Code with PlatformIO. Then copy the file `include/settings.example.h` to `include/settings.h`. Adjust the values in `settings.h` to fit your environment and save it. Upload to your hardware and enjoy :)
 
 ## Hardware
 The hardware used is a Esp8266-based wifi-enabled Mcu. You can use different devices like a Wemos Mini or a Nodemcu, but take care of the Gpio labels that can differ. The receiver is a RFM69B radio transciever. I use a 868MHz device, but a 900MHz should work as well. To this a simple antenna is connected, I use a straight wire, 86 millimeters long connected to the RFM's Ant-connection. The wire shall be vertical, standing up. You can also add a similar wire to the gnd-connection next to the antenna connection, pointing down, opposite to the first wire.
@@ -45,14 +46,14 @@ The connection for the RFM69 is hardcoded. This is standard Spi connections set 
 
 The schematic shows a Nodemcu, but you can use another ESP8266-based device if you want (except the Esp-01). Use these pin mappings:
 
-```
-NodeMcu - Esp12
-D1	- Gpio5
-D5	- Gpio14
-D6	- Gpio12
-D7	- Gpio13
-D8	- Gpio15
-```
+| NodeMcu | Esp12 |
+|----|--------|
+| D1 | Gpio5  |
+| D5 | Gpio14 |
+| D6 | Gpio12 |
+| D7 | Gpio13 |
+| D8 | Gpio15 |
+
 
 ![Wiring diagram](https://github.com/bphermansson/EspSparsnasGateway/raw/master/EspSparsnasGateway_schem_Nodemcu.png)
 
@@ -91,49 +92,48 @@ You can use the device with a simple USB power supply and get data via Mqtt. The
 ### Enable debug
 Further more information is given by the device if debug is activated:
 
-```
+```c++
 #define DEBUG 1
 ```
 
 ### Change the channel filter width
 With some RFM's a software adjustment can be tested if the code doesn't work. Line 213 in RFM69functions.cpp looks like this:
 
-```
+```c++
 /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_4}, // p26 in datasheet, filters out noise
 ```
 
 You can try to change this to:
 
-```
+```c++
 /* 0x19 */ {REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_3}, // p26 in datasheet, filters out noise
 ```
 
 This makes the channel filter wider, 62.5khz instead of 31.3khz.
 
-## Control device via Mqtt
-You can send messages to the device via Mqtt. There are four topics that can be used:
-
-```
-EspSparsnasGateway/settings/frequency - Set the receiver frequency in the message payload and reboot.
-EspSparsnasGateway/settings/senderid  - Set the sender id in the payload and reboot.
-EspSparsnasGateway/settings/clear     - Clear stored settings and reboot.
-EspSparsnasGateway/settings/reset     - Reset the device.
-```
-
-Examples:
-```
-... -t 'EspSparsnasGateway/settings/senderid' -m '643654'
-... -t 'EspSparsnasGateway/settings/frequency' -m '867.99'
-... -t 'EspSparsnasGateway/settings/reset' -m ''
-```
-
-Note that this doesn't work the first time after the code has been uploaded, the Esp has to be reset manually before it can be reset properly via software. This is a known bug in the SDK.
-Also note that the frequency can't be set exactly now, don't know why.
-
 ## Home Assistant integration
-The Mqtt data can be used anywhere, here's an example for the Home Automation software Home Assistant.
+Sensors for power (Watt) and energy (kWh) will be created automatically if Home Assistant is configured to support [discovery](https://www.home-assistant.io/docs/mqtt/discovery/#discovery).
+The MQTT data can however be used anywhere, here's an example for the Home Automation software Home Assistant.
 In Home Assistant the sensors can look like this:
 
+```yaml
+- platform: mqtt
+  state_topic: "EspSparsnasGateway/+/state"
+  name: "House power usage"
+  unit_of_measurement: "W"
+  value_template: '{{ float(value_json.watt) | round(0)  }}'
+
+- platform: mqtt
+  state_topic: "EspSparsnasGateway/+/state"
+  name: "House energy usage"
+  unit_of_measurement: "kWh"
+  value_template: '{{ float(value_json.total) | round(0)  }}'
+
+- platform: mqtt
+  state_topic: "EspSparsnasGateway/+/state"
+  name: "House energy meter batt"
+  unit_of_measurement: "%"
+  value_template: '{{ float(value_json.battery) }}'
 ```
 #Sparnas energy monitor
   - platform: mqtt
@@ -156,7 +156,7 @@ In Home Assistant the sensors can look like this:
 
 We then get these sensors:
 
-```
+```yaml
 -sensor.house_energy_meter_batt
 -sensor.house_energy_usage
 -sensor.house_power_usage
