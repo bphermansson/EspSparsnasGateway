@@ -18,13 +18,14 @@ static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
 
-static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
-static const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
+static const char* mqtt_status_topic = MQTT_STATUS_TOPIC;
+static const char* mqtt_debug_topic = MQTT_DEBUG_TOPIC;
+
 static String mqttMess;
 
 extern PubSubClient mClient;
 
-#define _interruptNum 5
+//#define _interruptNum 5
 static volatile bool inInterrupt = false; // Fake Mutex
 
 uint32_t FXOSC = 32000000;
