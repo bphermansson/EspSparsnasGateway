@@ -20,13 +20,11 @@
 #include <ntp.h>
 #include <settings.h>
 
-#define _interruptNum 5 // = ESP8266 GPIO5
-
 WiFiClient wClient;
 PubSubClient mClient(wClient);
 
-const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
-const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
+static const char* mqtt_status_topic = MQTT_STATUS_TOPIC;
+static const char* mqtt_debug_topic = MQTT_DEBUG_TOPIC;
 
 // Make it possible to read Vcc from code
 ADC_MODE(ADC_VCC);
@@ -66,7 +64,7 @@ void setup() {
 
   digitalWrite(LED_RED, LOW);
   digitalWrite(LED_GREEN, LOW);
-  digitalWrite(LED_BLUE, LOW);
+  digitalWrite(LED_BLUE, HIGH);
   delay(500);
 
   blinkerGreen.attach(0.5, changeStateLED_GREEN);

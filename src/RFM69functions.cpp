@@ -18,13 +18,16 @@ static volatile uint8_t DATA[21];
 static volatile uint8_t TEMPDATA[21];
 static volatile uint8_t DATALEN;
 
-static const char* mqtt_status_topic = "EspSparsnasGateway/valuesV2";
-static const char* mqtt_debug_topic = "EspSparsnasGateway/debugV2";
+static const char* mqtt_status_topic = MQTT_STATUS_TOPIC;
+static const char* mqtt_debug_topic = MQTT_DEBUG_TOPIC;
+
 static String mqttMess;
+const String sensor_id = String(SENSOR_ID);
+const String state_topic = APPNAME "/" + sensor_id + "/state"; 
 
 extern PubSubClient mClient;
 
-#define _interruptNum 5
+//#define _interruptNum 5
 static volatile bool inInterrupt = false; // Fake Mutex
 
 uint32_t FXOSC = 32000000;
@@ -43,6 +46,8 @@ extern timeval tv;
 extern timespec tp;
 extern time_t now;
 extern "C" int clock_gettime(clockid_t unused, struct timespec *tp);
+
+extern void publish_mqtt(String, String);
 
 int16_t readRSSI();
 
@@ -451,10 +456,11 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       status["power"] = power;
       status["pulse"] = pulse;
 
-      mqttMess = "";
+      String mqttMess;
       serializeJson(status, mqttMess);
 
       if (status["error"] == "") {
+        publish_mqtt(state_topic, mqttMess);
         mClient.publish((char*) String(mqtt_status_topic).c_str(), (char*) mqttMess.c_str());
       }
       analogWrite(LED_BLUE, 0);
