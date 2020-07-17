@@ -87,19 +87,17 @@ void setup() {
 
   WiFi.hostname(APPNAME);
 
-  // Setup Mqtt connection
   mClient.setServer(MQTT_SERVER, MQTT_PORT);
   reconnect();
 
   mqttMess = "Welcome to EspSparsnasGateway, compiled at " + String(compile_date);
-  mqttMess = mqttMess + ".\nMqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
+  mqttMess = mqttMess + ".Mqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "IP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
   #ifdef DEBUG
     Serial.println(mqttMess);
   #endif
   mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
 
   Serial.println(mqtt_status_topic);
-
 
   // Hostname defaults to esp8266-[ChipID], change this
   ArduinoOTA.setHostname(APPNAME);
@@ -167,7 +165,6 @@ void loop() {
     reconnect();
   }
   mClient.loop();
-  //delay(10);
   // Note! This routine is necessary, don't remove it!
   if (receiveDone()) {
   }

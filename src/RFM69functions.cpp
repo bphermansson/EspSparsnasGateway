@@ -55,14 +55,12 @@ void  ICACHE_RAM_ATTR interruptHandler();
 
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void select() {
-  // noInterrupts();
   digitalWrite(SS, LOW);
 }
 
 // unselect the RFM69 transceiver (set CS high, restore SPI settings)
 void unselect() {
   digitalWrite(SS, HIGH);
-  // interrupts();
 }
 
 uint8_t readReg(uint8_t addr) {
@@ -81,7 +79,6 @@ void writeReg(uint8_t addr, uint8_t value) {
 }
 
 void setMode(uint8_t newMode) {
-
   #ifdef DEBUG
      Serial.println(F("In setMode"));
   #endif
@@ -141,16 +138,6 @@ void receiveBegin() {
 // get the received signal strength indicator (RSSI)
 //uint16_t readRSSI(bool forceTrigger = false) {  // Settings this to true gives a crash...
 int16_t readRSSI() {
-/*  if (forceTrigger) {
-    // RSSI trigger not needed if DAGC is in continuous mode
-    writeReg(REG_RSSICONFIG, RF_RSSI_START);
-          client.publish(mqtt_status_topic, "In rssi read");
-
-    while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00) {
-      // wait for RSSI_Ready
-      yield();
-    }
-  }*/
   int16_t rssi = -readReg(REG_RSSIVALUE);
   #ifdef DEBUG
     Serial.println("rssi: " + String(rssi) + "dbi");
@@ -160,19 +147,23 @@ int16_t readRSSI() {
 
 // checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool receiveDone() {
+
+// Remove all this?
   // noInterrupts(); // re-enabled in unselect() via setMode() or via
   // receiveBegin()
+  /*
   #ifdef DEBUG
     //Serial.println("receiveDone");
   #endif
+*/
+
+
 
   if (_mode == RF69_MODE_RX && DATALEN > 0) {
     setMode(RF69_MODE_STANDBY); // enables interrupts
     return true;
 
   } else if (_mode == RF69_MODE_RX) {
-    // already in RX no payload yet
-    // interrupts(); // explicitly re-enable interrupts
     return false;
   }
 
