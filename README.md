@@ -4,7 +4,7 @@ This is a MQTT Gateway for Ikeas energy monitor Sparsnas. The monitor
 sends encoded data by radio to a control panel. This device collects the data
 and sends it to MQTT-enabled receivers in json-format.
 
-The data is also printed to the seriaĺ port. If the reception is bad, the received data can be bad.
+The data is also printed to the serial port. If the reception is bad, the received data can be bad.
 This gives a CRC-error, the data is in this case not sent via MQTT but printed via the serial port.
 
 The data sent via MQTT is in json format and looks like this:
@@ -149,31 +149,13 @@ In Home Assistant the sensors can look like this:
   unit_of_measurement: "%"
   value_template: '{{ float(value_json.battery) }}'
 ```
-#Sparnas energy monitor
-  - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
-    name: "House energy usage"
-    unit_of_measurement: "W"
-    value_template: '{{ float(value_json.power) | round(0)  }}'
 
-  - platform: mqtt
-    state_topic: "EspSparsnasGateway/values"
-    name: "House energy meter batt"
-    unit_of_measurement: "%"
-    value_template: '{{ float(value_json.battery) }}'
-
-  - platform: mqtt
-    state_topic: "EspSparsnasGateway/valuesV2"
-    name: "House power usage"
-    unit_of_measurement: "W"
-    value_template: '{{ float(value_json.watt) | round(0)  }}'
-
-We then get these sensors:
+Wich results in these sensors:
 
 ```yaml
--sensor.house_energy_meter_batt
--sensor.house_energy_usage
--sensor.house_power_usage
+- sensor.house_energy_meter_batt
+- sensor.house_energy_usage
+- sensor.house_power_usage
 ```
 
 The result can be seen in SparsnasHass.png.
