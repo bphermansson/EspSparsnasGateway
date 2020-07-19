@@ -150,7 +150,7 @@ In Home Assistant the sensors can look like this:
   value_template: '{{ float(value_json.battery) }}'
 ```
 
-Wich results in these sensors:
+Which results in these sensors:
 
 ```yaml
 - sensor.house_energy_meter_batt
