@@ -74,8 +74,8 @@ void reconnect() {
       send_discovery_message("kWh", "{{ value_json.total | round(1) }}");
       mClient.publish(availability_topic.c_str(), "online", true);
     } else {
-      Serial.print("MQTT connection failed,");
-      Serial.println(" try again in 5 seconds");
+      Serial.print("MQTT connection to " MQTT_SERVER " failed,");
+      Serial.println(" check your settings.");
       // Wait 5 seconds before retrying
       delay(5000);
     }

@@ -10,6 +10,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoOTA.h>
+#define ARDUINOJSON_USE_LONG_LONG 1 // https://arduinojson.org/v6/api/config/use_long_long/
 #include <ArduinoJson.h>
 #include <Ticker.h>
 /*------------------------------*/
@@ -79,7 +80,11 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFISSID, WIFIPASSWORD);
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    Serial.println(F("WiFi connection Failed! Rebooting..."));
+
+    Serial.println(F("Connecting to " WIFISSID "..."));
+    Serial.println(F("Connection failed, check your settings!"));
+    Serial.println(F("Rebooting..."));
+
     blinkerRed.attach(0.5, changeStateLED_RED);
     delay(5000);
     ESP.restart();
@@ -95,11 +100,9 @@ void setup() {
   mqttMess = mqttMess + ".\nMqtt topics: " + mqtt_status_topic + ", " + mqtt_debug_topic + "\nIP: " + WiFi.localIP()[0] + "." + WiFi.localIP()[1] + "." + WiFi.localIP()[2] + "." + WiFi.localIP()[3];
   #ifdef DEBUG
     Serial.println(mqttMess);
+    Serial.println(mqtt_status_topic);
   #endif
   mqttpub(String(mqtt_debug_topic), "Device", mqttMess, mqttMess.length());
-
-  Serial.println(mqtt_status_topic);
-
 
   // Hostname defaults to esp8266-[ChipID], change this
   ArduinoOTA.setHostname(APPNAME);

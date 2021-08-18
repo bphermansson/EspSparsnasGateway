@@ -4,6 +4,7 @@
 #include <PubSubClient.h>
 #include <mqttpub.h>
 #include <SPI.h>
+#define ARDUINOJSON_USE_LONG_LONG 1 // https://arduinojson.org/v6/api/config/use_long_long/
 #include <ArduinoJson.h>
 #include <RFM69registers.h>
 
