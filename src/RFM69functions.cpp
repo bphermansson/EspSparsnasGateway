@@ -413,9 +413,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       'So in the example 10 % 3, 10 divided by 3 is 3 with remainder 1, so the answer is 1.'
       */
       #ifdef DEBUG
-        // Print menory usage in debug mode
+        // Print amount of free memory.
         int heap = ESP.getFreeHeap();
-        Serial.print(F("Memory usage: "));
+        Serial.print(F("Available memory: "));
         Serial.println (heap);
       #endif
 
