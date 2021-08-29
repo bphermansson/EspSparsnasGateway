@@ -23,7 +23,7 @@ The data sent via MQTT is in json format and looks like this:
 }
 ```
 
-The device uses two Mqtt topics to publish, `EspSparsnasGateway/<sensor_id>/state` and `EspSparsnasGateway/debugV2`.
+The device uses two Mqtt topics to publish, `EspSparsnasGateway/<sensor_id>/valuesV2` and `EspSparsnasGateway/debugV2'. The latter can be ignored if you not are interrested in bad packets, just listen on topic 'EspSparsnasGateway/valuesV2'.
 
 ## Dependencies
 
