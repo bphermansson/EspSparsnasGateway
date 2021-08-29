@@ -70,11 +70,19 @@ void setup() {
 
   blinkerGreen.attach(0.5, changeStateLED_GREEN);
 
+  #ifdef SHOW_BAD_PACKETS
+     Serial.println(F("SHOW_BAD_PACKETS on"));
+  #else
+     Serial.println(F("SHOW_BAD_PACKETS off"));
+  #endif
+
   #ifdef DEBUG
      Serial.println(F("Debug on"));
      Serial.print (F("Vcc="));
      Serial.println(ESP.getVcc());
      Serial.println (F("Set up WiFi..."));
+  #else
+     Serial.println(F("Debug off"));   
   #endif
 
   WiFi.mode(WIFI_STA);

@@ -346,7 +346,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
     // if (data_[0] != 0x11 || data_[1] != (SENSOR_ID & 0xFF) || data_[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
     // if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || TEMPDATA[4] != 0x0E || rcv_sensor_id != SENSOR_ID) {
     if (TEMPDATA[0] != 0x11 || TEMPDATA[1] != (SENSOR_ID & 0xFF) || TEMPDATA[3] != 0x07 || rcv_sensor_id != SENSOR_ID) {
-      #ifdef DEBUG
+      #ifdef SHOW_BAD_PACKETS
         output = "";
         Serial.println("Bad packet!");
         for (uint8_t i = 0; i < 20; i++) {
@@ -355,9 +355,9 @@ void  ICACHE_RAM_ATTR interruptHandler() {
            Serial.print(" ");
         }
         Serial.println(" ");
-
       #endif
-    } else {
+    } else 
+    {
       #ifdef DEBUG
         Serial.println("Valid package received!");
       #endif
@@ -367,7 +367,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
       clock_gettime(0, &tp);
       now = time(nullptr);
       // EPOCH+tz+dst
-//      Serial.print("Time:");
+      // Serial.print("Time:");
       //Serial.print(ctime(&now));
 
       /*
@@ -385,7 +385,7 @@ void  ICACHE_RAM_ATTR interruptHandler() {
 
       // Ref: https://github.com/strigeus/sparsnas_decoder
       int seq = (TEMPDATA[9] << 8 | TEMPDATA[10]);    // Time in units of 15 seconds.
-      uint power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
+      unsigned int power = (TEMPDATA[11] << 8 | TEMPDATA[12]); // Current effect usage
       int pulse = (TEMPDATA[13] << 24 | TEMPDATA[14] << 16 | TEMPDATA[15] << 8 | TEMPDATA[16]); // Total number of pulses
       int battery = TEMPDATA[17]; // Battery level, 0-100.
 
