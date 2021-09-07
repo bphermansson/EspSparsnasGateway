@@ -83,10 +83,12 @@ void writeReg(uint8_t addr, uint8_t value) {
 
 void setMode(uint8_t newMode) {
 
+  /* This floods the serial output, uncomment for more debugging. 
   #ifdef DEBUG
      Serial.println(F("In setMode"));
   #endif
-
+  */
+ 
   if (newMode == _mode) {
     return;
   }
@@ -163,10 +165,11 @@ int16_t readRSSI() {
 bool receiveDone() {
   // noInterrupts(); // re-enabled in unselect() via setMode() or via
   // receiveBegin()
+  /* This floods the serial output, uncomment for more debugging. 
   #ifdef DEBUG
-    //Serial.println("receiveDone");
+    Serial.println("receiveDone");
   #endif
-
+  */
   if (_mode == RF69_MODE_RX && DATALEN > 0) {
     setMode(RF69_MODE_STANDBY); // enables interrupts
     return true;
@@ -182,9 +185,11 @@ bool receiveDone() {
 }
 
 uint16_t crc16(volatile uint8_t *data, size_t n) {
+  /* This floods the serial output, uncomment for more debugging. 
   #ifdef DEBUG
     Serial.println("In crc16");
   #endif
+  */
   uint16_t crcReg = 0xffff;
   size_t i, j;
   for (j = 0; j < n; j++) {
