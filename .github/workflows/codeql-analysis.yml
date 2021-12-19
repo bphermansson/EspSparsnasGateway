@@ -1,0 +1,67 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+name: "CodeQL"
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 21 * * 3'
+
+jobs:
+  test-building:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        environment: [nodemcuv2, d1_mini_lite]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U https://github.com/platformio/platformio/archive/develop.zip
+          platformio platform install file://.
+          pio platform uninstall espressif8266
+          cp include/settings.example.h include/settings.h
+      - name: Build
+        run: |
+          platformio run -e ${{ matrix.environment }} -d .
+
+  codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U https://github.com/platformio/platformio/archive/develop.zip
+          platformio platform install file://.
+          pio platform uninstall espressif8266
+          cp include/settings.example.h include/settings.h
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v1
+        with:
+          languages: cpp
+
+      - name: Build
+        run: |
+          platformio run -e nodemcuv2 -d .
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v1
