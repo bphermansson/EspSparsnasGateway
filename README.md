@@ -130,6 +130,53 @@ Sensors for power (Watt) and energy (kWh) will be created automatically if Home 
 The MQTT data can however be used anywhere, here's an example for the Home Automation software Home Assistant.
 In Home Assistant the sensors can look like this:
 
+### Home assistant version 2022.9 and newer
+configuration.yaml
+```yaml
+mqtt: !include mqtt.yaml
+```
+mqtt.yaml
+```yaml
+sensor:
+  - state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House power usage"
+    unit_of_measurement: "W"
+    value_template: "{{ float(value_json.watt) | round(0)  }}"
+    icon: mdi:flash-circle
+    state_class: measurement
+    device_class: power
+
+  - state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House energy usage"
+    unit_of_measurement: "kWh"
+    value_template: "{{ float(value_json.total) | round(0)  }}"
+    icon: mdi:flash-circle
+    state_class: measurement
+    device_class: energy
+
+  - state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House energy meter batt"
+    unit_of_measurement: "%"
+    value_template: "{{ float(value_json.battery) }}"
+    icon: mdi:battery-outline
+
+  - state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House energy meter power"
+    value_template: "{{ float(value_json.power) }}"
+    icon: mdi:power-socket-eu
+    state_class: measurement
+
+  - state_topic: "EspSparsnasGateway/valuesV2"
+    name: "House energy meter signal"
+    unit_of_measurement: "dBm"
+    value_template: "{{ float(value_json.rssi) }}"
+    icon: mdi:antenna
+
+```
+
+### Home assistant version 2022.9 and older
+Since 2022.9 the platform mqtt yaml configuration is depricated and a notification warning is shown since [2022.6](https://www.home-assistant.io/blog/2022/06/01/release-20226/)
+If you are running a home assistant version before 2022.9 you can use this
 ```yaml
 - platform: mqtt
   state_topic: "EspSparsnasGateway/+/state"
@@ -149,8 +196,8 @@ In Home Assistant the sensors can look like this:
   unit_of_measurement: "%"
   value_template: '{{ float(value_json.battery) }}'
 ```
-
-Which results in these sensors:
+### Sensor result
+The above results in these sensors:
 
 ```yaml
 - sensor.house_energy_meter_batt
