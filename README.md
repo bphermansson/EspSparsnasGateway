@@ -151,7 +151,7 @@ sensor:
     unit_of_measurement: "kWh"
     value_template: "{{ float(value_json.total) | round(0)  }}"
     icon: mdi:flash-circle
-    state_class: measurement
+    state_class: total_increasing
     device_class: energy
 
   - state_topic: "EspSparsnasGateway/valuesV2"
